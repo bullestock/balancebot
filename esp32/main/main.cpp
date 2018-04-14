@@ -2,11 +2,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "driver/mcpwm.h"
+#include "soc/mcpwm_reg.h"
+#include "soc/mcpwm_struct.h"
 #include "sdkconfig.h"
 
 #include "esp32_digital_led_lib.h"
 
 #define LED_GPIO 13
+
+#define GPIO_PWM0A_OUT 16
+#define GPIO_PWM0B_OUT 17
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal)
 {
@@ -64,8 +70,58 @@ void led_task(void*)
     }
 }
 
+void set_motor(mcpwm_unit_t mcpwm_num, mcpwm_timer_t timer_num, float duty_cycle)
+{
+    if (duty_cycle >= 0)
+    {
+        mcpwm_set_signal_low(mcpwm_num, timer_num, MCPWM_OPR_B);
+        mcpwm_set_duty(mcpwm_num, timer_num, MCPWM_OPR_A, duty_cycle);
+        mcpwm_set_duty_type(mcpwm_num, timer_num, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
+    }
+    else
+    {
+        duty_cycle = -duty_cycle;
+        mcpwm_set_signal_low(mcpwm_num, timer_num, MCPWM_OPR_A);
+        mcpwm_set_duty(mcpwm_num, timer_num, MCPWM_OPR_B, duty_cycle);
+        mcpwm_set_duty_type(mcpwm_num, timer_num, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
+    }
+}
+
+void motor_task(void*)
+{
+    printf("Init PWM\n");
+
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_PWM0A_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_PWM0B_OUT);
+    mcpwm_config_t pwm_config;
+    pwm_config.frequency = 1000;    //frequency = 500Hz,
+    pwm_config.cmpr_a = 0;
+    pwm_config.cmpr_b = 0;
+    pwm_config.counter_mode = MCPWM_UP_COUNTER;
+    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);  
+
+    printf("Loop\n");
+    
+    bool fwd = true;
+    float speed = 0.0;
+    while (1)
+    {
+        printf("Speed %f Fwd %d\n", speed, fwd);
+        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_0, fwd ? speed : -speed);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        speed += 10;
+        if (speed > 100)
+        {
+            speed = 0;
+            fwd = !fwd;
+        }
+    }
+}
+
 extern "C"
 void app_main()
 {
-    xTaskCreate(&led_task, "led_task", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+    xTaskCreate(led_task, "led_task", 2048, NULL, 5, NULL);
+    xTaskCreate(motor_task, "motor_task", 2048, NULL, 5, NULL);
 }
