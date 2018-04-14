@@ -13,6 +13,8 @@
 
 #define GPIO_PWM0A_OUT 16
 #define GPIO_PWM0B_OUT 17
+#define GPIO_PWM1A_OUT 18
+#define GPIO_PWM1B_OUT 19
 
 void gpioSetup(int gpioNum, int gpioMode, int gpioVal)
 {
@@ -93,6 +95,8 @@ void motor_task(void*)
 
     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_PWM0A_OUT);
     mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_PWM0B_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1A, GPIO_PWM1A_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1B, GPIO_PWM1B_OUT);
     mcpwm_config_t pwm_config;
     pwm_config.frequency = 1000;    //frequency = 500Hz,
     pwm_config.cmpr_a = 0;
@@ -100,21 +104,29 @@ void motor_task(void*)
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);  
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);  
 
     printf("Loop\n");
     
     bool fwd = true;
-    float speed = 0.0;
+    float speed1 = 0.0;
+    float speed2 = 0.0;
     while (1)
     {
-        printf("Speed %f Fwd %d\n", speed, fwd);
-        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_0, fwd ? speed : -speed);
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        speed += 10;
-        if (speed > 100)
+        printf("Speed %f/%f Fwd %d\n", speed1, speed2, fwd);
+        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_0, fwd ? speed1 : -speed1);
+        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_1, fwd ? speed2 : -speed2);
+        vTaskDelay(100/portTICK_PERIOD_MS);
+        speed1 += 10;
+        if (speed1 > 100)
         {
-            speed = 0;
-            fwd = !fwd;
+            speed1 = 0;
+            speed2 += 10;
+            if (speed2 > 100)
+            {
+                speed1 = speed2 = 0;
+                fwd = !fwd;
+            }
         }
     }
 }
