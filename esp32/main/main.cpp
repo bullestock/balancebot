@@ -1,13 +1,12 @@
 #include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
-#include "driver/mcpwm.h"
-#include "soc/mcpwm_reg.h"
-#include "soc/mcpwm_struct.h"
+#include <utility>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "sdkconfig.h"
 
-#include "esp32_digital_led_lib.h"
+#include "led.h"
+#include "motor.h"
 
 #define LED_GPIO 13
 
@@ -16,32 +15,9 @@
 #define GPIO_PWM1A_OUT 18
 #define GPIO_PWM1B_OUT 19
 
-void gpioSetup(int gpioNum, int gpioMode, int gpioVal)
+void led_task(void* p)
 {
-    gpio_num_t gpioNumNative = static_cast<gpio_num_t>(gpioNum);
-    gpio_mode_t gpioModeNative = static_cast<gpio_mode_t>(gpioMode);
-    gpio_pad_select_gpio(gpioNumNative);
-    gpio_set_direction(gpioNumNative, gpioModeNative);
-    gpio_set_level(gpioNumNative, gpioVal);
-}
-
-strand_t STRANDS[] = { // Avoid using any of the strapping pins on the ESP32
-  {.rmtChannel = 1, .gpioNum = LED_GPIO, .ledType = LED_WS2812B_V3, .brightLimit = 32, .numPixels =  2,
-   .pixels = nullptr, ._stateVars = nullptr}
-};
-
-void led_task(void*)
-{
-    // Setup
-    gpioSetup(LED_GPIO, GPIO_MODE_OUTPUT, 0);
-    if (digitalLeds_initStrands(STRANDS, 1))
-    {
-        printf("Init FAILURE\n");
-        return;
-    }
-    auto pStrand = STRANDS;
-    digitalLeds_resetPixels(pStrand);
-
+    auto led = reinterpret_cast<Led*>(p);
     // Loop
     int col = 0;
     while (1)
@@ -62,9 +38,7 @@ void led_task(void*)
             r = g = 255;
             break;
         }
-        printf("%d %d %d\n", r, g, b);
-        pStrand->pixels[0] = pStrand->pixels[1] = pixelFromRGB(g, r, b);
-        digitalLeds_updatePixels(pStrand);
+        led->set_color(r, g, b);
         vTaskDelay(1000/portTICK_PERIOD_MS);
         ++col;
         if (col > 3)
@@ -72,50 +46,19 @@ void led_task(void*)
     }
 }
 
-void set_motor(mcpwm_unit_t mcpwm_num, mcpwm_timer_t timer_num, float duty_cycle)
+void motor_task(void* p)
 {
-    if (duty_cycle >= 0)
-    {
-        mcpwm_set_signal_low(mcpwm_num, timer_num, MCPWM_OPR_B);
-        mcpwm_set_duty(mcpwm_num, timer_num, MCPWM_OPR_A, duty_cycle);
-        mcpwm_set_duty_type(mcpwm_num, timer_num, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
-    }
-    else
-    {
-        duty_cycle = -duty_cycle;
-        mcpwm_set_signal_low(mcpwm_num, timer_num, MCPWM_OPR_A);
-        mcpwm_set_duty(mcpwm_num, timer_num, MCPWM_OPR_B, duty_cycle);
-        mcpwm_set_duty_type(mcpwm_num, timer_num, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
-    }
-}
-
-void motor_task(void*)
-{
-    printf("Init PWM\n");
-
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_PWM0A_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_PWM0B_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1A, GPIO_PWM1A_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1B, GPIO_PWM1B_OUT);
-    mcpwm_config_t pwm_config;
-    pwm_config.frequency = 1000;    //frequency = 500Hz,
-    pwm_config.cmpr_a = 0;
-    pwm_config.cmpr_b = 0;
-    pwm_config.counter_mode = MCPWM_UP_COUNTER;
-    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);  
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);  
-
-    printf("Loop\n");
+    auto motors = reinterpret_cast<std::pair<Motor*, Motor*>*>(p);
+    auto motor_a = motors->first;
+    auto motor_b = motors->second;
     
     bool fwd = true;
     float speed1 = 0.0;
     float speed2 = 0.0;
     while (1)
     {
-        printf("Speed %f/%f Fwd %d\n", speed1, speed2, fwd);
-        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_0, fwd ? speed1 : -speed1);
-        set_motor(MCPWM_UNIT_0, MCPWM_TIMER_1, fwd ? speed2 : -speed2);
+        motor_a->set_speed(fwd ? speed1 : -speed1);
+        motor_b->set_speed(fwd ? speed2 : -speed2);
         vTaskDelay(100/portTICK_PERIOD_MS);
         speed1 += 10;
         if (speed1 > 100)
@@ -134,6 +77,12 @@ void motor_task(void*)
 extern "C"
 void app_main()
 {
-    xTaskCreate(led_task, "led_task", 2048, NULL, 5, NULL);
-    xTaskCreate(motor_task, "motor_task", 2048, NULL, 5, NULL);
+    auto led = new Led(LED_GPIO);
+
+    auto motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
+    auto motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
+    auto motors = std::make_pair(motor_a, motor_b);
+
+    xTaskCreate(led_task, "led_task", 2048, led, 5, NULL);
+    xTaskCreate(motor_task, "motor_task", 2048, &motors, 5, NULL);
 }
