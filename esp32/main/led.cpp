@@ -27,13 +27,11 @@ Led::Led(int gpio)
         printf("Init FAILURE\n");
         return;
     }
-    printf("ctor %p %p\n", this, strand.pixels);
     digitalLeds_resetPixels(&strand);
 }
 
 void Led::set_color(int r, int g, int b)
 {
-    printf("set_color %p %p\n", this, strand.pixels);
     strand.pixels[0] = strand.pixels[1] = pixelFromRGB(g, r, b);
     digitalLeds_updatePixels(&strand);
 }
