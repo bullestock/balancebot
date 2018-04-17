@@ -9,6 +9,6 @@ public:
 
     void set_color(int r, int g, int b);
 
-    //private:
+private:
     strand_t strand;
 };
