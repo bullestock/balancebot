@@ -7,7 +7,8 @@
 class Encoder
 {
 public:
-    Encoder(pcnt_unit_t unit, int gpio1, int gpio2);
+    Encoder(pcnt_unit_t unit,
+            int gpio1, int gpio2);
 
     void poll();
     
@@ -20,7 +21,7 @@ private:
 
     static void IRAM_ATTR quad_enc_isr(void*);
 
-    pcnt_unit_t unit;
+    pcnt_unit_t unit = (pcnt_unit_t) 0;
     
     // A queue to handle pulse counter events
     static xQueueHandle pcnt_evt_queue;

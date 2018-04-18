@@ -18,8 +18,10 @@
 #define GPIO_PWM1A_OUT 18
 #define GPIO_PWM1B_OUT 19
 
-#define PCNT_PULSE_GPIO     22
-#define PCNT_CONTROL_GPIO   23
+#define GPIO_ENC_A1   22
+#define GPIO_ENC_A2   23
+#define GPIO_ENC_B1    2
+#define GPIO_ENC_B2   15
 
 void led_task(void* p)
 {
@@ -82,10 +84,13 @@ void motor_task(void* p)
 
 void event_task(void* p)
 {
-    auto enc = reinterpret_cast<Encoder*>(p);
-
+    auto encoders = reinterpret_cast<std::pair<Encoder*, Encoder*>*>(p);
+    auto enc_a = encoders->first;
+    auto enc_b = encoders->second;
+    printf("encs %p %p\n", enc_a, enc_b);
     while (1) {
-        enc->poll();
+        enc_a->poll();
+        enc_b->poll();
     }
 }
 
@@ -96,15 +101,15 @@ extern "C"
 void app_main()
 {
     auto led = new Led(LED_GPIO);
+    xTaskCreate(led_task, "led_task", 2048, led, 5, NULL);
 
     auto motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
     auto motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
-    auto motors = std::make_pair(motor_a, motor_b);
-
-    xTaskCreate(led_task, "led_task", 2048, led, 5, NULL);
+    static auto motors = std::make_pair(motor_a, motor_b);
     xTaskCreate(motor_task, "motor_task", 2048, &motors, 5, NULL);
 
-    auto enc_a = new Encoder(PCNT_UNIT_0, PCNT_PULSE_GPIO, PCNT_CONTROL_GPIO);
-
-    xTaskCreate(event_task, "event_task", 2048, enc_a, 5, NULL);
+    auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
+    auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
+    static auto encoders = std::make_pair(enc_a, enc_b);
+    xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
 }
