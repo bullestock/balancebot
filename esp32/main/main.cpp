@@ -8,6 +8,7 @@
 #include "sdkconfig.h"
 
 #include "encoder.h"
+#include "imu.h"
 #include "led.h"
 #include "motor.h"
 
@@ -87,8 +88,8 @@ void event_task(void* p)
     auto encoders = reinterpret_cast<std::pair<Encoder*, Encoder*>*>(p);
     auto enc_a = encoders->first;
     auto enc_b = encoders->second;
-    printf("encs %p %p\n", enc_a, enc_b);
-    while (1) {
+    while (1)
+    {
         enc_a->poll();
         enc_b->poll();
     }
@@ -96,6 +97,14 @@ void event_task(void* p)
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
+void imu_task(void* p)
+{
+    auto imu = reinterpret_cast<Imu*>(p);
+    while (1)
+    {
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+    }
+}
 
 extern "C"
 void app_main()
@@ -112,4 +121,7 @@ void app_main()
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
+
+    auto imu = new Imu();
+    //    xTaskCreate(imu_task, "imu_task", 2049, imu, 5, NULL);
 }

@@ -55,7 +55,7 @@ void Encoder::poll()
      */
     pcnt_evt_t evt;
     auto res = xQueueReceive(pcnt_evt_queue, &evt, 1000 / portTICK_PERIOD_MS);
-    printf("PCNT unit %d\n", unit);
+    //printf("PCNT unit %d\n", unit);
     if (res == pdTRUE) {
         pcnt_get_counter_value(unit, &count);
         printf("Event PCNT unit[%d]; cnt: %d\n", evt.unit, count);
@@ -76,7 +76,7 @@ void Encoder::poll()
         }
     } else {
         pcnt_get_counter_value(unit, &count);
-        printf("Current counter value: %d\n", count);
+        //printf("Current counter value: %d\n", count);
     }
 }
 
