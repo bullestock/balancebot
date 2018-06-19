@@ -2,6 +2,8 @@
 
 #include <driver/i2c.h>
 
+#include <cstring>
+
 #define I2C_MASTER_SCL_IO          GPIO_NUM_14
 #define I2C_MASTER_SDA_IO          GPIO_NUM_27
 #define I2C_MASTER_NUM             I2C_NUM_1
@@ -45,10 +47,8 @@ static const imu_register_value_t LSM6DS3_CONFIG_VALUES[] = {
 
 Imu::Imu()
 {
-    printf("Imu ctor\n");
-    //imu_i2c_init(0);
+    // Configure I2C
 
-    const auto i2c_master_port = I2C_MASTER_NUM;
     i2c_config_t conf;
     conf.mode = I2C_MODE_MASTER;
     conf.sda_io_num = I2C_MASTER_SDA_IO;
@@ -56,49 +56,102 @@ Imu::Imu()
     conf.scl_io_num = I2C_MASTER_SCL_IO;
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    i2c_param_config(i2c_master_port, &conf);
-    i2c_driver_install(i2c_master_port, conf.mode, 0, 0,
-                       0); //!! interrupt flag
+    i2c_param_config(I2C_MASTER_NUM, &conf);
+    i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0,
+                       0); //!! interrupt flag ESP_INTR_FLAG_
 
-  //!!
-  // ret = imu_send_config(IMU_ADDR, LSM6DS3_CONFIG_VALUES,
-  //                       sizeof(LSM6DS3_CONFIG_VALUES) / sizeof(LSM6DS3_CONFIG_VALUES[0]));
-  // if (ret != 0)
-  // {
-  //   return ret;
-  // }
+    // Configure IMU parameters
+    
+    for (const auto& e : LSM6DS3_CONFIG_VALUES)
+    {
+        auto cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);
+        i2c_master_write_byte(cmd, e.address, 1);
+        i2c_master_write_byte(cmd, e.value, 1);
+        i2c_master_stop(cmd);
+        const auto ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+        i2c_cmd_link_delete(cmd);
+        assert(ret == 0);
+    }
 
-    uint8_t whoami = 0;
-    //ret = imu_read_register(IMU_ADDR, LSM6DS3_WHO_AM_I, &whoami);
-
+    // Check that the WHO_AM_I register reports the correct value
+    
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);
     i2c_master_write_byte(cmd, LSM6DS3_WHO_AM_I, 1);
     i2c_master_stop(cmd);
-    esp_err_t ret = i2c_master_cmd_begin(i2c_master_port, cmd, 1000 / portTICK_RATE_MS);
-    if (ret != 0)
-    {
-        printf("step 1: err %d\n", ret);
-        return;
-    }
+    auto ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
+    assert(ret == 0);
     
     cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_READ, 1);
-    i2c_master_read_byte(cmd, &whoami, I2C_MASTER_NACK);
+    uint8_t whoami = 0;
+    i2c_master_read_byte(cmd, &whoami, I2C_MASTER_ACK);
     i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(i2c_master_port, cmd, 1000 / portTICK_RATE_MS);
+    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+    i2c_cmd_link_delete(cmd);
+    assert(ret == 0);
+    assert(whoami == LSM6DS3_WHO_AM_I_VALUE);
+
+}
+
+bool Imu::read_raw_data(int16_t* data)
+{
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);
+    i2c_master_write_byte(cmd, OUTX_L_G, 1);
+    i2c_master_stop(cmd);
+    auto ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
     if (ret != 0)
-    {
-        printf("step 2: err %d\n", ret);
-        return;
-    }
-    printf("whoami %d\n", whoami);
-    if (whoami != LSM6DS3_WHO_AM_I_VALUE)
-    {
-        printf("whoami: expected %d, got %d\n", LSM6DS3_WHO_AM_I_VALUE, whoami);
-    }
+        return false;
+
+    cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_READ, 1); // 1 or 0, no difference
+    const int N = 12;
+    uint8_t tmp[N];
+    for (int i = 0; i < N - 1; ++i)
+        i2c_master_read_byte(cmd, tmp + i, I2C_MASTER_ACK);
+    i2c_master_read_byte(cmd, tmp + N - 1, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+    i2c_cmd_link_delete(cmd);
+    if (ret != 0)
+        return false;
+
+    // for (int i = 0; i < sizeof(tmp)/sizeof(tmp[0]); ++i)
+    //     printf("IMU %d %d\n", i, tmp[i]);
+
+    auto my_data = (uint8_t*) data;
+    memcpy(&my_data[6], &tmp[0], 6);
+    memcpy(&my_data[0], &tmp[6], 6);
+    /*
+    cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);
+    i2c_master_write_byte(cmd, LSM6DS3_WHO_AM_I, 1);
+    i2c_master_stop(cmd);
+    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+    i2c_cmd_link_delete(cmd);
+    assert(ret == 0);
+    
+    cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_READ, 1);
+    uint8_t whoami = 0;
+    i2c_master_read_byte(cmd, &whoami, I2C_MASTER_ACK); // Works with both I2C_MASTER_ACK and I2C_MASTER_NACK
+    i2c_master_stop(cmd);
+    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
+    i2c_cmd_link_delete(cmd);
+    assert(ret == 0);
+    printf("WHO %d (%d)\n", whoami, LSM6DS3_WHO_AM_I_VALUE);
+    */
+    return true;
 }
+

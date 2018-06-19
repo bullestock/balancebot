@@ -103,6 +103,18 @@ void imu_task(void* p)
     while (1)
     {
         vTaskDelay(1000/portTICK_PERIOD_MS);
+        int16_t data[6];
+        if (!imu->read_raw_data(data))
+            printf("read error\n");
+        else
+        {
+            printf("Acc X  %d\n", data[0]);
+            printf("Acc Y  %d\n", data[1]);
+            printf("Acc Z  %d\n", data[2]);
+            printf("Rate X %d\n", data[3]);
+            printf("Rate Y %d\n", data[4]);
+            printf("Rate Z %d\n", data[5]);
+        }
     }
 }
 
@@ -123,5 +135,5 @@ void app_main()
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
 
     auto imu = new Imu();
-    //    xTaskCreate(imu_task, "imu_task", 2049, imu, 5, NULL);
+    xTaskCreate(imu_task, "imu_task", 2048, imu, 5, NULL);
 }
