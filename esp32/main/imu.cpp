@@ -125,33 +125,10 @@ bool Imu::read_raw_data(int16_t* data)
     if (ret != 0)
         return false;
 
-    // for (int i = 0; i < sizeof(tmp)/sizeof(tmp[0]); ++i)
-    //     printf("IMU %d %d\n", i, tmp[i]);
-
     auto my_data = (uint8_t*) data;
     memcpy(&my_data[6], &tmp[0], 6);
     memcpy(&my_data[0], &tmp[6], 6);
-    /*
-    cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);
-    i2c_master_write_byte(cmd, LSM6DS3_WHO_AM_I, 1);
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    assert(ret == 0);
-    
-    cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_READ, 1);
-    uint8_t whoami = 0;
-    i2c_master_read_byte(cmd, &whoami, I2C_MASTER_ACK); // Works with both I2C_MASTER_ACK and I2C_MASTER_NACK
-    i2c_master_stop(cmd);
-    ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
-    i2c_cmd_link_delete(cmd);
-    assert(ret == 0);
-    printf("WHO %d (%d)\n", whoami, LSM6DS3_WHO_AM_I_VALUE);
-    */
+
     return true;
 }
 
