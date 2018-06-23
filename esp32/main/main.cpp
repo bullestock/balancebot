@@ -7,9 +7,12 @@
 #include <driver/pcnt.h>
 #include "sdkconfig.h"
 
+#include "espway.h"
 #include "encoder.h"
 #include "imu.h"
+#include "imu_math.h"
 #include "led.h"
+#include "locks.h"
 #include "motor.h"
 
 #define LED_GPIO 13
@@ -24,38 +27,17 @@
 #define GPIO_ENC_B1    2
 #define GPIO_ENC_B2   15
 
-void led_task(void* p)
-{
-    auto led = reinterpret_cast<Led*>(p);
-    // Loop
-    int col = 0;
-    while (1)
-    {
-        int r = 0, g = 0, b = 0;
-        switch (col)
-        {
-        case 0: // red
-            r = 255;
-            break;
-        case 1: // blue
-            b = 255;
-            break;
-        case 2: // green
-            g = 255;
-            break;
-        case 3: // yellow
-            r = g = 255;
-            break;
-        }
-        led->set_color(r, g, b);
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        ++col;
-        if (col > 3)
-            col = 0;
-    }
-}
+#define GREEN   0, 255, 0
+#define BLUE    0, 0, 255
 
-void motor_task(void* p)
+Led* led = nullptr;
+Motor* motor_a = nullptr;
+Motor* motor_b = nullptr;
+Imu* imu = nullptr;
+
+#if 0
+
+void motor_test_task(void* p)
 {
     auto motors = reinterpret_cast<std::pair<Motor*, Motor*>*>(p);
     auto motor_a = motors->first;
@@ -69,12 +51,12 @@ void motor_task(void* p)
         motor_a->set_speed(fwd ? speed1 : -speed1);
         motor_b->set_speed(fwd ? speed2 : -speed2);
         vTaskDelay(100/portTICK_PERIOD_MS);
-        speed1 += 10;
-        if (speed1 > 100)
+        speed1 += 0.1;
+        if (speed1 > 1.0)
         {
             speed1 = 0;
-            speed2 += 10;
-            if (speed2 > 100)
+            speed2 += 0.1;
+            if (speed2 > 1.0)
             {
                 speed1 = speed2 = 0;
                 fwd = !fwd;
@@ -95,45 +77,265 @@ void event_task(void* p)
     }
 }
 
+#endif
+
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
-void imu_task(void* p)
+static mahony_filter_state imuparams;
+static pidstate vel_pid_state;
+static pidstate angle_pid_state;
+
+SemaphoreHandle_t pid_mutex;
+pidsettings pid_settings_arr[2];
+
+static SemaphoreHandle_t steering_mutex;
+static double target_speed = 0;
+static double steering_bias = 0;
+
+static SemaphoreHandle_t orientation_mutex;
+static vector3d gravity = {{ 0.0, 0.0, 1.0 }};
+
+enum log_mode { LOG_FREQ, LOG_RAW, LOG_PITCH, LOG_NONE };
+
+constexpr auto LOGMODE = LOG_NONE;
+
+#define ORIENTATION_STABILIZE_DURATION_US ((ORIENTATION_STABILIZE_DURATION) * 1000)
+#define WINDUP_TIMEOUT_US ((WINDUP_TIMEOUT) * 1000)
+
+double exponential_smooth(double prevVal, double newVal, double alpha)
 {
-    auto imu = reinterpret_cast<Imu*>(p);
+    return prevVal + alpha * (newVal - prevVal);
+}
+
+int elapsed_time_us(TickType_t t2, TickType_t t1)
+{
+    return (t2 - t1)*portTICK_PERIOD_MS*1000;
+}
+
+// -1 to +1
+void set_motors(double m1, double m2)
+{
+    motor_a->set_speed(m1);
+    motor_b->set_speed(m2);
+}
+
+void main_loop(void* pvParameters)
+{
+    TickType_t time_old = 0;
+    TickType_t current_time = 0;
+    int n = 0;
+    double travel_speed = 0;
+    double smoothed_target_speed = 0;
+    state my_state = STABILIZING_ORIENTATION;
+    TickType_t stage_started = 0;
+    TickType_t last_wind_up = 0;
+    double sin_pitch = 0.0, sin_roll = 0.0;
+
+    int loopcount = 0;
+#define SHOW_DEBUG() ((my_state == RUNNING) && (loopcount == 0))
+    
     while (1)
     {
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        int16_t data[6];
-        if (!imu->read_raw_data(data))
-            printf("read error\n");
-        else
+        ++loopcount;
+        if (loopcount >= 10)
+            loopcount = 0;
+        
+        //vTaskDelay(1/portTICK_PERIOD_MS);
+
+        //xTaskNotifyWait(0, 0, NULL, 1);
+        int16_t raw_data[6];
+        if (!imu->read_raw_data(raw_data))
         {
-            printf("Acc X  %d\n", data[0]);
-            printf("Acc Y  %d\n", data[1]);
-            printf("Acc Z  %d\n", data[2]);
-            printf("Rate X %d\n", data[3]);
-            printf("Rate Y %d\n", data[4]);
-            printf("Rate Z %d\n", data[5]);
+            printf("Reading IMU failed with\n");
+            continue;
         }
+        
+        // Update orientation estimate
+        {
+            MutexLock lock(orientation_mutex);
+            mahony_filter_update(&imuparams, &raw_data[0], &raw_data[3], &gravity);
+            // Calculate sine of pitch angle from gravity vector
+            sin_pitch = -gravity.data[IMU_FORWARD_AXIS];
+            if (IMU_INVERT_FORWARD_AXIS)
+                sin_pitch = -sin_pitch;
+            sin_roll = -gravity.data[IMU_SIDE_AXIS];
+            if (IMU_INVERT_SIDE_AXIS)
+                sin_roll = -sin_roll;
+
+            // Upright ~ 0
+            if (SHOW_DEBUG())
+                printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
+        }
+        // Exponential smoothing of target speed
+        double motor_bias;
+        {
+            MutexLock lock(orientation_mutex);
+            smoothed_target_speed = exponential_smooth(smoothed_target_speed,
+                                                       target_speed, TARGET_SPEED_SMOOTHING);
+            motor_bias = steering_bias;
+        }
+
+        current_time = xTaskGetTickCount();
+
+        if (my_state == STABILIZING_ORIENTATION &&
+            elapsed_time_us(current_time, stage_started) > ORIENTATION_STABILIZE_DURATION_US)
+        {
+            printf("Done stabilizing\n");
+            my_state = RUNNING;
+            stage_started = current_time;
+            imuparams.Kp = MAHONY_FILTER_KP;
+        }
+        else if (my_state == RUNNING || my_state == WOUND_UP)
+        {
+            if (SHOW_DEBUG())
+                printf("ap %f ar %f\n", fabs(sin_pitch - STABLE_ANGLE), fabs(sin_roll));
+            if (fabs(sin_pitch - STABLE_ANGLE) < FALL_LIMIT &&
+                fabs(sin_roll) < ROLL_LIMIT)
+            {
+                // Perform PID update
+                double target_angle, motor_speed;
+                {
+                    MutexLock lock(pid_mutex);
+                    if (SHOW_DEBUG())
+                        printf("PID update 1: ts %f ss %f\n", travel_speed, smoothed_target_speed);
+                    target_angle = pid_compute(travel_speed, smoothed_target_speed,
+                                               &pid_settings_arr[VEL], &vel_pid_state,
+                                               SHOW_DEBUG());
+
+                    if (sin_pitch < (target_angle - HIGH_PID_LIMIT))
+                        motor_speed = -1.0;
+                    else if (sin_pitch > target_angle + HIGH_PID_LIMIT)
+                        motor_speed = 1.0;
+                    else
+                        motor_speed = pid_compute(sin_pitch, target_angle,
+                                                  &pid_settings_arr[ANGLE], &angle_pid_state,
+                                                  SHOW_DEBUG());
+                    if (SHOW_DEBUG())
+                        printf("PID update: ta %f sp %f bias %f\n", target_angle, motor_speed, motor_bias);
+                }
+
+                if (fabs(motor_speed) < MOTOR_DEADBAND)
+                    motor_speed = 0;
+
+                if (my_state == WOUND_UP)
+                    set_motors(0, 0);
+                else
+                    set_motors(motor_speed + motor_bias,
+                               motor_speed - motor_bias);
+
+                if (motor_speed != 1.0 && motor_speed != -1.0)
+                    last_wind_up = current_time;
+                else if (elapsed_time_us(current_time, last_wind_up) > WINDUP_TIMEOUT_US)
+                {
+                    printf("WOUND UP!\n");
+                    my_state = WOUND_UP;
+                    led->set_color(BLUE);
+                    vTaskDelay(10000/portTICK_PERIOD_MS);
+                }
+
+                // Estimate travel speed by exponential smoothing
+                travel_speed = exponential_smooth(travel_speed, motor_speed,
+                                                  TRAVEL_SPEED_SMOOTHING);
+
+                if (SHOW_DEBUG())
+                    printf("trav %f target %f\n", travel_speed, smoothed_target_speed);
+            }
+            else
+            {
+                printf("FALLEN!\n");
+                my_state = FALLEN;
+                led->set_color(BLUE);
+                travel_speed = 0;
+                smoothed_target_speed = 0;
+                set_motors(0, 0);
+            }
+        }
+        else if (my_state == FALLEN &&
+                 fabs(sin_pitch - STABLE_ANGLE) < RECOVER_LIMIT &&
+                 fabs(sin_roll) < ROLL_LIMIT)
+        {
+            printf("Running again!\n");
+            my_state = RUNNING;
+            last_wind_up = current_time;
+            led->set_color(GREEN);
+            pid_reset(sin_pitch, 0, &pid_settings_arr[ANGLE], &angle_pid_state);
+            pid_reset(0, STABLE_ANGLE, &pid_settings_arr[VEL],
+                      &vel_pid_state);
+        }
+
+        if (LOGMODE == LOG_FREQ)
+        {
+            n += 1;
+            if (n == 1024)
+            {
+                n = 0;
+                auto looptime = elapsed_time_us(current_time, time_old);
+                printf("Looptime: %u us\n", looptime);
+                time_old = current_time;
+            }
+        }
+        else if (LOGMODE == LOG_RAW)
+        {
+            printf("%d, %d, %d, %d, %d, %d\n",
+                   raw_data[0], raw_data[1], raw_data[2],
+                   raw_data[3], raw_data[4], raw_data[5]);
+        }
+        else if (LOGMODE == LOG_PITCH)
+        {
+            printf("%f, %f\n", sin_pitch, sin_roll);
+        }
+
+        //!!xTaskNotify(xIMUWatcher, 0, eNoAction);
     }
 }
 
 extern "C"
 void app_main()
 {
-    auto led = new Led(LED_GPIO);
-    xTaskCreate(led_task, "led_task", 2048, led, 5, NULL);
+    pid_mutex = xSemaphoreCreateMutex();
+    orientation_mutex = xSemaphoreCreateMutex();
+    steering_mutex = xSemaphoreCreateMutex();
 
-    auto motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
-    auto motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
+    load_config();
+    apply_config_params();
+    pretty_print_config();
+
+    // Parameter calculation & initialization
+    pid_reset(0, 0, &pid_settings_arr[ANGLE], &angle_pid_state);
+    pid_reset(0, 0, &pid_settings_arr[VEL], &vel_pid_state);
+    mahony_filter_init(&imuparams, 10.0f * MAHONY_FILTER_KP, MAHONY_FILTER_KI,
+                       2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
+
+#if 0
+    wifi_setup();
+
+    xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, PRIO_COMMUNICATION, NULL);
+    xTaskCreate(&main_loop, "Main loop", 256, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
+    xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);
+    xTaskCreate(&imu_watcher, "IMU watcher", 128, NULL, PRIO_MAIN_LOOP + 2, &xIMUWatcher);
+    xTaskCreate(&maze_solver_task, "Maze solver", 256, NULL, PRIO_COMMUNICATION + 1, NULL);
+
+    gpio_enable(IMU_INTERRUPT_PIN, GPIO_INPUT);
+    gpio_set_interrupt(IMU_INTERRUPT_PIN, GPIO_INTTYPE_EDGE_POS, imu_interrupt_handler);
+#endif
+    
+    led = new Led(LED_GPIO);
+
+    motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
+    motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
+#if 0
     static auto motors = std::make_pair(motor_a, motor_b);
-    xTaskCreate(motor_task, "motor_task", 2048, &motors, 5, NULL);
-
+    xTaskCreate(motor_test_task, "motor_task", 2048, &motors, 5, NULL);
+#endif
+    
+#if 0
     auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
+#endif
+    
+    imu = new Imu();
 
-    auto imu = new Imu();
-    xTaskCreate(imu_task, "imu_task", 2048, imu, 5, NULL);
+    xTaskCreate(main_loop, "main_loop", 10240, nullptr, 5, nullptr);
 }

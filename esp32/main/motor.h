@@ -10,6 +10,7 @@ public:
           mcpwm_io_signals_t pwm_a, mcpwm_io_signals_t pwm_b,
           int gpio_a, int gpio_b);
 
+    // -1.0 to 1.0
     void set_speed(float speed);
 
 private:

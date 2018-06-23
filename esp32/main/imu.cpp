@@ -9,7 +9,6 @@
 #define I2C_MASTER_NUM             I2C_NUM_1
 #define I2C_MASTER_FREQ_HZ         100000
 
-#define IMU_SAMPLE_TIME (1.0f / 1660.0f)
 #define IMU_ADDR 0x6a
 
 #define LSM6DS3_WHO_AM_I 0x0f

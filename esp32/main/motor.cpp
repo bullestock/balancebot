@@ -27,14 +27,14 @@ void Motor::set_speed(float speed)
     if (speed >= 0)
     {
         mcpwm_set_signal_low(unit, timer, MCPWM_OPR_B);
-        mcpwm_set_duty(unit, timer, MCPWM_OPR_A, speed);
+        mcpwm_set_duty(unit, timer, MCPWM_OPR_A, speed*100);
         mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0);
     }
     else
     {
         speed = -speed;
         mcpwm_set_signal_low(unit, timer, MCPWM_OPR_A);
-        mcpwm_set_duty(unit, timer, MCPWM_OPR_B, speed);
+        mcpwm_set_duty(unit, timer, MCPWM_OPR_B, speed*100);
         mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_0);
     }
 }
