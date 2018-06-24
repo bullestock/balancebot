@@ -116,7 +116,7 @@ int elapsed_time_us(TickType_t t2, TickType_t t1)
 void set_motors(double m1, double m2)
 {
     motor_a->set_speed(m1);
-    motor_b->set_speed(m2);
+    motor_b->set_speed(-m2);
 }
 
 void main_loop(void* pvParameters)
