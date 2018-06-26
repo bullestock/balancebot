@@ -5,7 +5,12 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <driver/pcnt.h>
+#include <lwip/sockets.h>
+#include "esp_wifi.h"
 #include "sdkconfig.h"
+#include "esp_event.h"
+#include "esp_event_loop.h"
+#include "nvs_flash.h"
 
 #include "espway.h"
 #include "encoder.h"
@@ -36,34 +41,6 @@ Motor* motor_b = nullptr;
 Imu* imu = nullptr;
 
 #if 0
-
-void motor_test_task(void* p)
-{
-    auto motors = reinterpret_cast<std::pair<Motor*, Motor*>*>(p);
-    auto motor_a = motors->first;
-    auto motor_b = motors->second;
-    
-    bool fwd = true;
-    float speed1 = 0.0;
-    float speed2 = 0.0;
-    while (1)
-    {
-        motor_a->set_speed(fwd ? speed1 : -speed1);
-        motor_b->set_speed(fwd ? speed2 : -speed2);
-        vTaskDelay(100/portTICK_PERIOD_MS);
-        speed1 += 0.1;
-        if (speed1 > 1.0)
-        {
-            speed1 = 0;
-            speed2 += 0.1;
-            if (speed2 > 1.0)
-            {
-                speed1 = speed2 = 0;
-                fwd = !fwd;
-            }
-        }
-    }
-}
 
 void event_task(void* p)
 {
@@ -289,6 +266,48 @@ void main_loop(void* pvParameters)
     }
 }
 
+esp_err_t event_handler(void* ctx, system_event_t* event)
+{
+    printf("WiFi event: %d\n", event->event_id);
+    return ESP_OK;
+}
+
+static void wifi_setup()
+{
+    nvs_flash_init();
+    tcpip_adapter_init();
+    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, nullptr));
+
+    tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_AP); // Don't run a DHCP client
+    tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+
+    tcpip_adapter_ip_info_t ipInfo;
+    inet_pton(AF_INET, "10.0.0.1", &ipInfo.ip);
+    inet_pton(AF_INET, "10.0.0.1", &ipInfo.gw);
+    inet_pton(AF_INET, "255.255.255.0", &ipInfo.netmask);
+    tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &ipInfo);
+
+    ESP_ERROR_CHECK(tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP));
+    
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    const auto ret = esp_wifi_init(&cfg);
+    if (ret != ESP_OK)
+    {
+        printf("esp_wifi_init: %s\n", esp_err_to_name(ret));
+        return;
+    }
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    wifi_config_t ap_config = {};
+    strcpy((char*) ap_config.ap.ssid, WIFI_SSID);
+    ap_config.ap.ssid_len = strlen(WIFI_SSID);
+    ap_config.ap.authmode = WIFI_AUTH_OPEN;
+    ap_config.ap.max_connection = 1;
+    ap_config.ap.beacon_interval = 100;
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+}
+
 extern "C"
 void app_main()
 {
@@ -306,9 +325,9 @@ void app_main()
     mahony_filter_init(&imuparams, 10.0f * MAHONY_FILTER_KP, MAHONY_FILTER_KI,
                        2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
 
-#if 0
     wifi_setup();
 
+#if 0
     xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, PRIO_COMMUNICATION, NULL);
     xTaskCreate(&main_loop, "Main loop", 256, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
     xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);
