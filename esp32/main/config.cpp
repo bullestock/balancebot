@@ -111,15 +111,17 @@ bool save_flash_config()
   return success;
 }
 
-#if 0
 bool clear_flash_config()
 {
+#if 0
   uint32_t base_addr, num_sectors;
   return sysparam_get_info(&base_addr, &num_sectors) == SYSPARAM_OK &&
      sysparam_create_area(base_addr, num_sectors, true) == SYSPARAM_OK &&
      sysparam_init(base_addr, 0) == SYSPARAM_OK;
-}
 #endif
+  //!!
+  return true;
+}
 
 void update_pid_controller(pid_controller_index idx, double p, double i, double d)
 {
