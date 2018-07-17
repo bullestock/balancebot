@@ -311,7 +311,6 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
 
 static void wifi_setup()
 {
-    nvs_flash_init();
     tcpip_adapter_init();
     ESP_ERROR_CHECK(esp_event_loop_init(event_handler, nullptr));
 
@@ -355,9 +354,8 @@ static void led_duty(uint16_t duty) {
   ledc_update_duty(ledc_channel.speed_mode,ledc_channel.channel);
 }
 
-static void led_setup() {
-  const static char* TAG = "led_setup";
-
+static void led_setup()
+{
   ledc_timer_config_t ledc_timer = {
     LEDC_HIGH_SPEED_MODE,
     LEDC_TIMER_10_BIT,
@@ -386,6 +384,7 @@ void app_main()
     orientation_mutex = xSemaphoreCreateMutex();
     steering_mutex = xSemaphoreCreateMutex();
 
+    nvs_flash_init();
     load_config();
     apply_config_params();
     pretty_print_config();
