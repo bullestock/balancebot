@@ -100,11 +100,11 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
     {
     case STEERING:
         // Parameters: velocity (int8_t), turn rate (int8_t)
-        if (data_len != 2) break;
+        if (data_len != 2)
+            break;
         signed_data = (int8_t*) payload;
-        //!!
-        set_steering((FLT_TO_Q16(SPEED_CONTROL_FACTOR) * signed_data[1]) / 128,
-                     (FLT_TO_Q16(STEERING_FACTOR) * signed_data[0]) / 128);
+        set_steering(SPEED_CONTROL_FACTOR * (signed_data[1]/128.0),
+                     STEERING_FACTOR * (signed_data[0]/128.0));
         break;
 
     case REQ_ORIENTATION:
@@ -121,8 +121,8 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
         i32_data = (int32_t*) (&payload[1]);
         if (pid_index < (sizeof(pid_settings_arr) / sizeof(pid_settings_arr[0])))
         {
-            update_pid_controller(pid_index, i32_data[0]/Q16_ONE, i32_data[1]/Q16_ONE,
-                                  i32_data[2]/Q16_ONE);
+            update_pid_controller(pid_index, Q16_TO_FLT(i32_data[0]), Q16_TO_FLT(i32_data[1]),
+                                  Q16_TO_FLT(i32_data[2]));
             res = RES_SET_PID_PARAMS_ACK;
             ws_server_send_bin_all_from_callback(&res, 1);
         }
@@ -133,9 +133,7 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
         if (data_len != 1)
             break;
         if (payload[0] < (sizeof(pid_settings_arr) / sizeof(pid_settings_arr[0])))
-        {
             send_pid_params((pid_controller_index) payload[0]);
-        }
         break;
 
     case REQ_LOAD_FLASH_CONFIG:

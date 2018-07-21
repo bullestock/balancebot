@@ -211,8 +211,7 @@ void main_loop(void* pvParameters)
                 sin_roll = -sin_roll;
 
             // Upright ~ 0
-            //if (SHOW_DEBUG())
-            if (loopcount == 0)
+            if (SHOW_DEBUG())
                 printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
         }
         // Exponential smoothing of target speed
@@ -276,6 +275,7 @@ void main_loop(void* pvParameters)
                     last_wind_up = current_time;
                 else if (elapsed_time_us(current_time, last_wind_up) > WINDUP_TIMEOUT_US)
                 {
+                    set_motors(0, 0);
                     printf("WOUND UP!\n");
                     my_state = WOUND_UP;
                     led->set_color(BLUE);
