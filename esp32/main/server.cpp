@@ -348,7 +348,7 @@ void server_task(void* pvParameters) {
     err = netconn_accept(conn, &newconn);
     ESP_LOGI(TAG, "new client");
     if(err == ERR_OK) {
-      xQueueSendToBack(client_queue,&newconn,portMAX_DELAY);
+      xQueueSendToBack(client_queue, &newconn, portMAX_DELAY);
       //http_serve(newconn);
     }
   } while(err == ERR_OK);
@@ -370,52 +370,3 @@ void server_handle_task(void* pvParameters) {
   }
   vTaskDelete(NULL);
 }
-
-
-#if 0
-static void battery_task(void* pvParameter)
-{
-  uint32_t battery_value = 0;
-  for (;;)
-  {
-    battery_value = q16_exponential_smooth(battery_value, sdk_system_adc_read(),
-        FLT_TO_Q16(0.25f));
-    uint32_t battery_mv = (battery_value * BATTERY_FULL_SCALE_RANGE) / 1024;
-
-    if (ENABLE_BATTERY_CUTOFF && battery_mv < BATTERY_THRESHOLD)
-    {
-      battery_cutoff();
-      break;
-    }
-
-    {
-      LwipCoreLock lock();
-      uint8_t buf[3];
-      buf[0] = BATTERY;
-      uint16_t* payload = (uint16_t*) &buf[1];
-      payload[0] = battery_mv;
-      httpd_websocket_broadcast(buf, sizeof(buf), WS_BIN_MODE);
-    }
-
-    vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
-  }
-
-  vTaskDelete(NULL);
-}
-
-void httpd_task(void* pvParameters)
-{
-  xTaskCreate(battery_task, "Battery task", 256, NULL, uxTaskPriorityGet(NULL), NULL);
-
-  tCGI pCGIs[] = {
-    {"/pid", [](int, int, char*[], char*[]) { return "/pid.html"; }}
-  };
-  http_set_cgi_handlers(pCGIs, sizeof (pCGIs) / sizeof (pCGIs[0]));
-
-  httpd_websocket_register_callbacks(NULL, (tWsHandler) httpd_websocket_cb);
-  httpd_init();
-
-  for (;;);
-}
-
-#endif
