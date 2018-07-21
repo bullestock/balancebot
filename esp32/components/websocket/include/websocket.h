@@ -64,8 +64,8 @@ typedef struct {
   char* contin;         // any continuation piece
   bool contin_text;     // is the continue a binary or text?
   uint64_t len;         // length of continuation
-  void (*ccallback)(WEBSOCKET_TYPE_t type,char* msg,uint64_t len); // client callback
-  void (*scallback)(uint8_t num,WEBSOCKET_TYPE_t type,char* msg,uint64_t len); // server callback
+  void (*ccallback)(WEBSOCKET_TYPE_t type, char* msg, uint64_t len); // client callback
+  void (*scallback)(uint8_t num, WEBSOCKET_TYPE_t type, char* msg, uint64_t len); // server callback
 } ws_client_t;
 
 // returns the populated client struct
@@ -74,14 +74,14 @@ typedef struct {
 // scallback = callback for server (userspace)
 ws_client_t ws_connect_client(struct netconn* conn,
                               const char* url,
-                              void (*ccallback)(WEBSOCKET_TYPE_t type,char* msg,uint64_t len),
-                              void (*scallback)(uint8_t num,WEBSOCKET_TYPE_t type,char* msg,uint64_t len)
+                              void (*ccallback)(WEBSOCKET_TYPE_t type, char* msg, uint64_t len),
+                              void (*scallback)(uint8_t num, WEBSOCKET_TYPE_t type, char* msg, uint64_t len)
                              );
 void ws_disconnect_client(ws_client_t* client);
 bool ws_is_connected(ws_client_t client); // returns 1 if connected, status updates after send/read/connect/disconnect
-void ws_send(ws_client_t* client,WEBSOCKET_OPCODES_t opcode,char* msg,uint64_t len,bool mask); // sends message. this function performs the masking
-char* ws_read(ws_client_t* client,ws_header_t* header); // unmasks and returns message. populates header.
-char* ws_hash_handshake(char* key,uint8_t len); // returns string of output
+void ws_send(ws_client_t* client, WEBSOCKET_OPCODES_t opcode, const char* msg, uint64_t len, bool mask); // sends message. this function performs the masking
+char* ws_read(ws_client_t* client, ws_header_t* header); // unmasks and returns message. populates header.
+char* ws_hash_handshake(char* key, uint8_t len); // returns string of output
 
 #endif // ifndef WEBSOCKET_H
 

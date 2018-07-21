@@ -8,8 +8,8 @@
 
 ws_client_t ws_connect_client(struct netconn* conn,
                               const char* url,
-                              void (*ccallback)(WEBSOCKET_TYPE_t type,char* msg,uint64_t len),
-                              void (*scallback)(uint8_t num,WEBSOCKET_TYPE_t type,char* msg,uint64_t len)
+                              void (*ccallback)(WEBSOCKET_TYPE_t type, char* msg, uint64_t len),
+                              void (*scallback)(uint8_t num, WEBSOCKET_TYPE_t type, char* msg, uint64_t len)
                             ) {
   ws_client_t client;
   client.conn = conn;
@@ -24,7 +24,7 @@ ws_client_t ws_connect_client(struct netconn* conn,
 }
 
 void ws_disconnect_client(ws_client_t* client) {
-  ws_send(client,WEBSOCKET_OPCODE_CLOSE,NULL,0,1); // tell the client to close
+  ws_send(client, WEBSOCKET_OPCODE_CLOSE, NULL, 0, 1); // tell the client to close
   if(client->conn) {
     client->conn->callback = NULL; // shut off the callback
     netconn_close(client->conn);
@@ -53,7 +53,7 @@ static void ws_generate_mask(ws_header_t* header) {
   header->key.full = esp_random(); // generate a random 32 bit number
 }
 
-static void ws_encrypt_decrypt(char* msg,ws_header_t header) {
+static void ws_encrypt_decrypt(char* msg, ws_header_t header) {
   if(header.param.bit.MASK) {
     for(uint64_t i=0; i<header.length; i++) {
       msg[i] ^= header.key.part[i%4];
@@ -61,7 +61,7 @@ static void ws_encrypt_decrypt(char* msg,ws_header_t header) {
   }
 }
 
-void ws_send(ws_client_t* client,WEBSOCKET_OPCODES_t opcode,char* msg,uint64_t len,bool mask) {
+void ws_send(ws_client_t* client, WEBSOCKET_OPCODES_t opcode, const char* msg, uint64_t len, bool mask) {
   char* out;
   char* encrypt;
   uint64_t pos;
@@ -91,8 +91,8 @@ void ws_send(ws_client_t* client,WEBSOCKET_OPCODES_t opcode,char* msg,uint64_t l
   if(mask) {
     ws_generate_mask(&header); // get a key
     encrypt = malloc(len); // allocate memory for the encryption
-    memcpy(encrypt,msg,len);
-    ws_encrypt_decrypt(encrypt,header); // encrypt it!
+    memcpy(encrypt, msg, len);
+    ws_encrypt_decrypt(encrypt, header); // encrypt it!
     pos += 4; // add the position
   }
 
@@ -110,7 +110,7 @@ void ws_send(ws_client_t* client,WEBSOCKET_OPCODES_t opcode,char* msg,uint64_t l
     pos = 4;
   }
   if(header.param.bit.LEN == 127) {
-    memcpy(&out[2],&len,8);
+    memcpy(&out[2], &len, 8);
     pos = 10;
   }
 
@@ -119,18 +119,18 @@ void ws_send(ws_client_t* client,WEBSOCKET_OPCODES_t opcode,char* msg,uint64_t l
     out[pos] = header.key.part[1]; pos++;
     out[pos] = header.key.part[2]; pos++;
     out[pos] = header.key.part[3]; pos++;
-    memcpy(&out[pos],encrypt,len); // put in the encrypted message
+    memcpy(&out[pos], encrypt, len); // put in the encrypted message
     free(encrypt);
   }
   else {
-    memcpy(&out[pos],msg,len);
+    memcpy(&out[pos], msg, len);
   }
 
-  netconn_write(client->conn,out,true_len,NETCONN_COPY); // finally! send it.
+  netconn_write(client->conn, out, true_len, NETCONN_COPY); // finally! send it.
   free(out); // free the entire message
 }
 
-char* ws_read(ws_client_t* client,ws_header_t* header) {
+char* ws_read(ws_client_t* client, ws_header_t* header) {
   char* ret;
   char* append;
   err_t err;
@@ -140,9 +140,9 @@ char* ws_read(ws_client_t* client,ws_header_t* header) {
   uint64_t pos;
   uint64_t cont_len;
 
-  err = netconn_recv(client->conn,&inbuf);
+  err = netconn_recv(client->conn, &inbuf);
   if(err != ERR_OK) return NULL;
-  netbuf_data(inbuf,(void**)&buf, &len);
+  netbuf_data(inbuf, (void**)&buf,  &len);
   if(!buf) return NULL;
 
   // get the header
@@ -155,16 +155,16 @@ char* ws_read(ws_client_t* client,ws_header_t* header) {
     header->length = header->param.bit.LEN;
   }
   else if(header->param.bit.LEN == 126) {
-    memcpy(&(header->length),&buf[2],2);
+    memcpy(&(header->length), &buf[2], 2);
     pos = 4;
   }
   else { // LEN = 127
-    memcpy(&(header->length),&buf[2],8);
+    memcpy(&(header->length), &buf[2], 8);
     pos = 10;
   }
 
   if(header->param.bit.MASK) {
-    memcpy(&(header->key.full),&buf[pos],4); // extract the key
+    memcpy(&(header->key.full), &buf[pos], 4); // extract the key
     pos += 4;
   }
 
@@ -181,17 +181,17 @@ char* ws_read(ws_client_t* client,ws_header_t* header) {
     free(buf);
     return NULL;
   }
-  memcpy(ret,&buf[pos],header->length+1); // copy the message
+  memcpy(ret, &buf[pos], header->length+1); // copy the message
   ret[header->length] = '\0'; // end string
-  ws_encrypt_decrypt(ret,*header); // unencrypt, if necessary
+  ws_encrypt_decrypt(ret, *header); // unencrypt, if necessary
 
   if(header->param.bit.FIN == 0) { // if the message isn't done
     if((header->param.bit.OPCODE == WEBSOCKET_OPCODE_CONT) &&
        ((client->last_opcode==WEBSOCKET_OPCODE_BIN) || (client->last_opcode==WEBSOCKET_OPCODE_TEXT))) {
          cont_len = header->length + client->len;
          append = malloc(cont_len);
-         memcpy(append,client->contin,client->len);
-         memcpy(&append[client->len],ret,header->length);
+         memcpy(append, client->contin, client->len);
+         memcpy(&append[client->len], ret, header->length);
          free(client->contin);
          client->contin = malloc(cont_len);
          client->len = cont_len;
@@ -207,7 +207,7 @@ char* ws_read(ws_client_t* client,ws_header_t* header) {
         free(client->contin);
       }
       client->contin = malloc(header->length);
-      memcpy(client->contin,ret,header->length);
+      memcpy(client->contin, ret, header->length);
       client->len = header->length;
       client->last_opcode = header->param.bit.OPCODE;
 
@@ -229,7 +229,7 @@ char* ws_read(ws_client_t* client,ws_header_t* header) {
   return ret;
 }
 
-char* ws_hash_handshake(char* handshake,uint8_t len) {
+char* ws_hash_handshake(char* handshake, uint8_t len) {
   const char hash[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   const uint8_t hash_len = sizeof(hash);
   char* ret;
@@ -240,11 +240,11 @@ char* ws_hash_handshake(char* handshake,uint8_t len) {
   if(!len) return NULL;
   ret = malloc(32);
 
-  memcpy(key,handshake,len);
-  strlcpy(&key[len],hash,sizeof(key));
-  mbedtls_sha1((unsigned char*)key,len+hash_len-1,sha1sum);
-  mbedtls_base64_encode(NULL, 0, &ret_len, sha1sum, 20);
-  if(!mbedtls_base64_encode((unsigned char*)ret,32,&ret_len,sha1sum,20)) {
+  memcpy(key, handshake, len);
+  strlcpy(&key[len], hash, sizeof(key));
+  mbedtls_sha1((unsigned char*)key, len+hash_len-1, sha1sum);
+  mbedtls_base64_encode(NULL,  0,  &ret_len,  sha1sum,  20);
+  if(!mbedtls_base64_encode((unsigned char*)ret, 32, &ret_len, sha1sum, 20)) {
     ret[ret_len] = '\0';
     return ret;
   }
