@@ -5,6 +5,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
+#include <driver/adc.h>
 #include <driver/ledc.h>
 #include <driver/pcnt.h>
 
@@ -92,6 +93,8 @@ constexpr auto LOGMODE = LOG_NONE;
 
 static double sin_pitch = 0.0, sin_roll = 0.0;
 
+static TaskHandle_t xCalculationTask = nullptr;
+
 orientation get_orientation()
 {
   orientation copy_orientation = {};
@@ -134,6 +137,37 @@ void set_motors(double m1, double m2)
     motor_b->set_speed(-m2);
 }
 
+void battery_task(void*)
+{
+    const auto channel = ADC1_GPIO34_CHANNEL;
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(channel, ADC_ATTEN_DB_2_5);
+    
+    int smoothed_battery_value = 0;
+    while (1)
+    {
+        const int adc = adc1_get_raw(channel);
+        smoothed_battery_value = exponential_smooth(smoothed_battery_value, adc, 0.05);
+        uint16_t battery_mv = (uint16_t) (smoothed_battery_value * BATTERY_SCALE_FACTOR);
+
+        if (ENABLE_BATTERY_CUTOFF && battery_mv < BATTERY_THRESHOLD)
+        {
+            battery_cutoff();
+            break;
+        }
+
+        uint8_t buf[3];
+        buf[0] = BATTERY;
+        uint16_t* payload = (uint16_t*) &buf[1];
+        payload[0] = battery_mv;
+        ws_server_send_bin_all(buf, sizeof(buf));
+
+        vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
+    }
+
+    vTaskDelete(NULL);
+}
+
 void main_loop(void* pvParameters)
 {
     TickType_t time_old = 0;
@@ -146,12 +180,12 @@ void main_loop(void* pvParameters)
     TickType_t last_wind_up = 0;
 
     int loopcount = 0;
-#define SHOW_DEBUG() ((my_state == RUNNING) && (loopcount == 0))
+#define SHOW_DEBUG() false //((my_state == RUNNING) && (loopcount == 0))
     
     while (1)
     {
         ++loopcount;
-        if (loopcount >= 10)
+        if (loopcount >= 100)
             loopcount = 0;
         
         //vTaskDelay(1/portTICK_PERIOD_MS);
@@ -177,7 +211,8 @@ void main_loop(void* pvParameters)
                 sin_roll = -sin_roll;
 
             // Upright ~ 0
-            if (SHOW_DEBUG())
+            //if (SHOW_DEBUG())
+            if (loopcount == 0)
                 printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
         }
         // Exponential smoothing of target speed
@@ -395,16 +430,18 @@ void app_main()
     mahony_filter_init(&imuparams, 10.0f * MAHONY_FILTER_KP, MAHONY_FILTER_KI,
                        2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
 
+    imu = new Imu();
+    
     wifi_setup();
     led_setup();
     ws_server_start();
-    xTaskCreate(&server_task, "server_task", 3000, NULL, 9, NULL);
-    xTaskCreate(&server_handle_task, "server_handle_task", 4000, NULL, 6, NULL);
+    xTaskCreate(&battery_task, "Battery task", 2048, NULL, PRIO_COMMUNICATION, NULL);
+    xTaskCreate(&server_task, "HTTP Daemon", 3000, NULL, PRIO_COMMUNICATION, NULL);
+    xTaskCreate(&server_handle_task, "server_handle_task", 4000, NULL, PRIO_COMMUNICATION, NULL);
     //xTaskCreate(&count_task, "count_task", 6000, NULL, 2, NULL);
 
-    //!!xTaskCreate(&httpd_task, "HTTP Daemon", 256, NULL, PRIO_COMMUNICATION, NULL);
+    xTaskCreate(&main_loop, "Main loop", 10240, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
 #if 0
-    xTaskCreate(&main_loop, "Main loop", 256, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
     xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);
     xTaskCreate(&imu_watcher, "IMU watcher", 128, NULL, PRIO_MAIN_LOOP + 2, &xIMUWatcher);
     xTaskCreate(&maze_solver_task, "Maze solver", 256, NULL, PRIO_COMMUNICATION + 1, NULL);
@@ -427,11 +464,5 @@ void app_main()
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
-#endif
-    
-#if 0
-    imu = new Imu();
-
-    xTaskCreate(main_loop, "Main loop", 10240, nullptr, PRIO_MAIN_LOOP, nullptr);
 #endif
 }
