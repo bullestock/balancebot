@@ -72,7 +72,7 @@
 // Undervoltage cutoff check
 #define BATTERY_THRESHOLD 7400
 // The scaling of battery readings
-#define BATTERY_FULL_SCALE_RANGE 1046957
+#define BATTERY_SCALE_FACTOR 3.72
 #define BATTERY_CHECK_INTERVAL 500
 #define ENABLE_BATTERY_CHECK true
 #define ENABLE_BATTERY_CUTOFF false
