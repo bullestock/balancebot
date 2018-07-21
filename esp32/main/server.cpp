@@ -65,9 +65,9 @@ static void send_pid_params(pid_controller_index idx)
     int32_t* params = (int32_t*) (&buf[2]);
     {
         MutexLock lock(pid_mutex);
-        params[0] = my_config.pid_coeffs_arr[idx].p;
-        params[1] = my_config.pid_coeffs_arr[idx].i;
-        params[2] = my_config.pid_coeffs_arr[idx].d;
+        params[0] = FLT_TO_Q16(my_config.pid_coeffs_arr[idx].p);
+        params[1] = FLT_TO_Q16(my_config.pid_coeffs_arr[idx].i);
+        params[2] = FLT_TO_Q16(my_config.pid_coeffs_arr[idx].d);
     }
     ws_server_send_bin_all_from_callback(buf, sizeof(buf));
 }
@@ -121,8 +121,8 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
         i32_data = (int32_t*) (&payload[1]);
         if (pid_index < (sizeof(pid_settings_arr) / sizeof(pid_settings_arr[0])))
         {
-            update_pid_controller(pid_index, i32_data[0], i32_data[1],
-                                  i32_data[2]);
+            update_pid_controller(pid_index, i32_data[0]/Q16_ONE, i32_data[1]/Q16_ONE,
+                                  i32_data[2]/Q16_ONE);
             res = RES_SET_PID_PARAMS_ACK;
             ws_server_send_bin_all_from_callback(&res, 1);
         }
