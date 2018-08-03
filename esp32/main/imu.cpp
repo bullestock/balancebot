@@ -7,7 +7,7 @@
 #define I2C_MASTER_SCL_IO          GPIO_NUM_14
 #define I2C_MASTER_SDA_IO          GPIO_NUM_27
 #define I2C_MASTER_NUM             I2C_NUM_1
-#define I2C_MASTER_FREQ_HZ         100000
+#define I2C_MASTER_FREQ_HZ         1000000
 
 #define IMU_ADDR 0x6a
 
