@@ -180,7 +180,7 @@ void main_loop(void* pvParameters)
     TickType_t last_wind_up = 0;
 
     int loopcount = 0;
-#define SHOW_DEBUG() false //((my_state == RUNNING) && (loopcount == 0))
+#define SHOW_DEBUG() false // (loopcount == 0) //((my_state == RUNNING) && (loopcount == 0))
     
     while (1)
     {
@@ -314,8 +314,8 @@ void main_loop(void* pvParameters)
 
         if (LOGMODE == LOG_FREQ)
         {
-            n += 1;
-            if (n == 1024)
+            ++n;
+            if (n == 1000)
             {
                 n = 0;
                 auto looptime = elapsed_time_us(current_time, time_old);
@@ -431,6 +431,15 @@ void app_main()
                        2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
 
     imu = new Imu();
+    led = new Led(LED_GPIO);
+    motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
+    motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
+#if 0
+    auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
+    auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
+    static auto encoders = std::make_pair(enc_a, enc_b);
+    xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
+#endif
     
     wifi_setup();
     led_setup();
@@ -448,21 +457,5 @@ void app_main()
 
     gpio_enable(IMU_INTERRUPT_PIN, GPIO_INPUT);
     gpio_set_interrupt(IMU_INTERRUPT_PIN, GPIO_INTTYPE_EDGE_POS, imu_interrupt_handler);
-#endif
-    
-    led = new Led(LED_GPIO);
-
-    motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
-    motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
-#if 0
-    static auto motors = std::make_pair(motor_a, motor_b);
-    xTaskCreate(motor_test_task, "motor_task", 2048, &motors, 5, NULL);
-#endif
-    
-#if 0
-    auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
-    auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
-    static auto encoders = std::make_pair(enc_a, enc_b);
-    xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
 #endif
 }
