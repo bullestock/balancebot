@@ -60,7 +60,8 @@ Imu::Imu()
                        0); //!! interrupt flag ESP_INTR_FLAG_
 
     // Configure IMU parameters
-    
+
+    int i = 0;
     for (const auto& e : LSM6DS3_CONFIG_VALUES)
     {
         auto cmd = i2c_cmd_link_create();
@@ -71,7 +72,10 @@ Imu::Imu()
         i2c_master_stop(cmd);
         const auto ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
         i2c_cmd_link_delete(cmd);
+        if (ret)
+            printf("Init %d: %d\n", i, ret);
         assert(ret == 0);
+        ++i;
     }
 
     // Check that the WHO_AM_I register reports the correct value
