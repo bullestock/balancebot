@@ -42,6 +42,7 @@
 
 #define GREEN   0, 255, 0
 #define BLUE    0, 0, 255
+#define YELLOW  255, 255, 0
 
 #define PRIO_COMMUNICATION  2
 #define PRIO_MAIN_LOOP      (TCPIP_THREAD_PRIO + 1)
@@ -50,8 +51,6 @@ Led* led = nullptr;
 Motor* motor_a = nullptr;
 Motor* motor_b = nullptr;
 Imu* imu = nullptr;
-
-static ledc_channel_config_t ledc_channel;
 
 #if 0
 
@@ -279,7 +278,7 @@ void main_loop(void* pvParameters)
                     printf("WOUND UP!\n");
                     my_state = WOUND_UP;
                     led->set_color(BLUE);
-                    vTaskDelay(10000/portTICK_PERIOD_MS);
+                    vTaskDelay(1000/portTICK_PERIOD_MS);
                 }
 
                 // Estimate travel speed by exponential smoothing
@@ -379,42 +378,15 @@ static void wifi_setup()
     ESP_ERROR_CHECK(esp_wifi_start());
 }
 
-// sets up the led for pwm
-static void led_duty(uint16_t duty) {
-  static uint16_t val;
-  static uint16_t max = (1L<<10)-1;
-  if(duty > 100) return;
-  val = (duty * max) / 100;
-  ledc_set_duty(ledc_channel.speed_mode,ledc_channel.channel,val);
-  ledc_update_duty(ledc_channel.speed_mode,ledc_channel.channel);
-}
-
-static void led_setup()
-{
-  ledc_timer_config_t ledc_timer = {
-    LEDC_HIGH_SPEED_MODE,
-    LEDC_TIMER_10_BIT,
-    LEDC_TIMER_0,
-    5000
-  };
-
-  ledc_channel.channel = LEDC_CHANNEL_0;
-  ledc_channel.duty = 0;
-  ledc_channel.gpio_num = LED_PIN,
-  ledc_channel.speed_mode = LEDC_HIGH_SPEED_MODE;
-  ledc_channel.timer_sel = LEDC_TIMER_0;
-
-  ledc_timer_config(&ledc_timer);
-  ledc_channel_config(&ledc_channel);
-  led_duty(0);
-}
-
 extern void server_task(void* pvParameters);
 extern void server_handle_task(void* pvParameters);
 
 extern "C"
 void app_main()
 {
+    led = new Led(LED_GPIO);
+    led->set_color(YELLOW);
+
     pid_mutex = xSemaphoreCreateMutex();
     orientation_mutex = xSemaphoreCreateMutex();
     steering_mutex = xSemaphoreCreateMutex();
@@ -431,7 +403,6 @@ void app_main()
                        2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
 
     imu = new Imu();
-    led = new Led(LED_GPIO);
     motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
     motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
 #if 0
@@ -442,7 +413,6 @@ void app_main()
 #endif
     
     wifi_setup();
-    led_setup();
     ws_server_start();
     xTaskCreate(&battery_task, "Battery task", 2048, NULL, PRIO_COMMUNICATION, NULL);
     xTaskCreate(&server_task, "HTTP Daemon", 3000, NULL, PRIO_COMMUNICATION, NULL);
