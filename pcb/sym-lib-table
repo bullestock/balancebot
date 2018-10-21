@@ -1,0 +1,11 @@
+(sym_lib_table
+  (lib (name Diode)(type Legacy)(uri ${KIPRJMOD}/libs/Diode.lib)(options "")(descr ""))
+  (lib (name Transistor_FET)(type Legacy)(uri ${KIPRJMOD}/libs/Transistor_FET.lib)(options "")(descr ""))
+  (lib (name power)(type Legacy)(uri ${KIPRJMOD}/libs/power.lib)(options "")(descr ""))
+  (lib (name esp32mini)(type Legacy)(uri ${KIPRJMOD}/libs/esp32mini.lib)(options "")(descr ""))
+  (lib (name lsm6ds3)(type Legacy)(uri ${KIPRJMOD}/libs/lsm6ds3.lib)(options "")(descr ""))
+  (lib (name Device)(type Legacy)(uri ${KIPRJMOD}/libs/Device.lib)(options "")(descr ""))
+  (lib (name drv8835)(type Legacy)(uri ${KIPRJMOD}/libs/drv8835.lib)(options "")(descr ""))
+  (lib (name Connector_Generic)(type Legacy)(uri ${KIPRJMOD}/libs/Connector_Generic.lib)(options "")(descr ""))
+  (lib (name dsnmini360)(type Legacy)(uri ${KIPRJMOD}/libs/dsnmini360.lib)(options "")(descr ""))
+)
