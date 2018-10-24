@@ -20,11 +20,6 @@
 #include <cstring>
 #include <stdio.h>
 
-void dump(const char* s, const vector3d& v)
-{
-    //printf("%s: %.3f %.3f %.3f\n", s, v.data[0], v.data[1], v.data[2]);
-}
-
 void mahony_filter_init(mahony_filter_state* state, float Kp, float Ki,
                         float gyro_factor, float dt)
 {
@@ -46,39 +41,24 @@ void mahony_filter_update(mahony_filter_state* state,
         omega.data[i] = raw_gyro[i]/SCALE;
     }
 
-    dump("accel", accel);
-    dump("omega raw", omega);
     omega = v3d_mul(state->gyro_conversion_factor, &omega);
-    dump("omega radians ", omega);
 
     vector3d verror;
     if (accel.x != 0 || accel.y != 0 || accel.z != 0)
     {
         accel = v3d_normalize(&accel);
-        dump("accel normalized", accel);
         verror = v3d_cross(&accel, gravity);
-        dump("verror", verror);
         state->integral = v3d_add(&state->integral, &verror);
-        dump("integral", state->integral);
         verror = v3d_mul(state->Kp, &verror);
-        dump("verror 1", verror);
         omega = v3d_add(&omega, &verror);
-        dump("omega 3", omega);
     }
 
     verror = v3d_mul(state->Ki, &state->integral);
-    dump("verror 2", verror);
     verror = v3d_mul(state->dt, &verror);
-    dump("verror 3", verror);
     omega = v3d_add(&omega, &verror);
-    dump("omega 4", omega);
 
     vector3d vupdate = v3d_cross(gravity, &omega);
-    dump("vupdate 1", vupdate);
     vupdate = v3d_mul(state->dt, &vupdate);
-    dump("vupdate 2", vupdate);
     *gravity = v3d_add(gravity, &vupdate);
-    dump("gravity 1", *gravity);
     *gravity = v3d_normalize(gravity);
-    dump("gravity 2", *gravity);
 }
