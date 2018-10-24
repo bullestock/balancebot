@@ -85,7 +85,7 @@ static vector3d gravity = {{ 0.0, 0.0, 1.0 }};
 
 enum log_mode { LOG_FREQ, LOG_RAW, LOG_PITCH, LOG_NONE };
 
-constexpr auto LOGMODE = LOG_NONE;
+constexpr auto LOGMODE = LOG_FREQ;
 
 #define ORIENTATION_STABILIZE_DURATION_US ((ORIENTATION_STABILIZE_DURATION) * 1000)
 #define WINDUP_TIMEOUT_US ((WINDUP_TIMEOUT) * 1000)
@@ -179,7 +179,7 @@ void main_loop(void* pvParameters)
     TickType_t last_wind_up = 0;
 
     int loopcount = 0;
-#define SHOW_DEBUG() false // (loopcount == 0) //((my_state == RUNNING) && (loopcount == 0))
+#define SHOW_DEBUG() ((my_state == RUNNING) && (loopcount == 0))
     
     while (1)
     {
@@ -187,7 +187,7 @@ void main_loop(void* pvParameters)
         if (loopcount >= 100)
             loopcount = 0;
         
-        //vTaskDelay(1/portTICK_PERIOD_MS);
+        vTaskDelay(1/portTICK_PERIOD_MS);
 
         //xTaskNotifyWait(0, 0, NULL, 1);
         int16_t raw_data[6];
@@ -234,8 +234,7 @@ void main_loop(void* pvParameters)
         }
         else if (my_state == RUNNING || my_state == WOUND_UP)
         {
-            if (SHOW_DEBUG())
-                printf("ap %f ar %f\n", fabs(sin_pitch - STABLE_ANGLE), fabs(sin_roll));
+            //if (SHOW_DEBUG()) printf("ap %f ar %f\n", fabs(sin_pitch - STABLE_ANGLE), fabs(sin_roll));
             if (fabs(sin_pitch - STABLE_ANGLE) < FALL_LIMIT &&
                 fabs(sin_roll) < ROLL_LIMIT)
             {
@@ -243,8 +242,7 @@ void main_loop(void* pvParameters)
                 double target_angle, motor_speed;
                 {
                     MutexLock lock(pid_mutex);
-                    if (SHOW_DEBUG())
-                        printf("PID update 1: ts %f ss %f\n", travel_speed, smoothed_target_speed);
+                    //if (SHOW_DEBUG()) printf("PID update 1: ts %f ss %f\n", travel_speed, smoothed_target_speed);
                     target_angle = pid_compute(travel_speed, smoothed_target_speed,
                                                &pid_settings_arr[VEL], &vel_pid_state,
                                                SHOW_DEBUG());
@@ -278,7 +276,6 @@ void main_loop(void* pvParameters)
                     printf("WOUND UP!\n");
                     my_state = WOUND_UP;
                     led->set_color(BLUE);
-                    vTaskDelay(1000/portTICK_PERIOD_MS);
                 }
 
                 // Estimate travel speed by exponential smoothing
@@ -318,7 +315,7 @@ void main_loop(void* pvParameters)
             {
                 n = 0;
                 auto looptime = elapsed_time_us(current_time, time_old);
-                printf("Looptime: %u us\n", looptime);
+                printf("Looptime: %u ms\n", looptime/1000);
                 time_old = current_time;
             }
         }
