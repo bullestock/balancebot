@@ -11,5 +11,4 @@
   (lib (name dsn-mini-360)(type KiCad)(uri ${KIPRJMOD}/pretty/dsn-mini-360.pretty)(options "")(descr ""))
   (lib (name Inductor_THT)(type KiCad)(uri ${KIPRJMOD}/pretty/Inductor_THT.pretty)(options "")(descr ""))
   (lib (name Inductor_SMD)(type KiCad)(uri ${KIPRJMOD}/pretty/Inductor_SMD.pretty)(options "")(descr ""))
-  (lib (name modules)(type KiCad)(uri ${KIPRJMOD}/modules)(options "")(descr ""))
 )

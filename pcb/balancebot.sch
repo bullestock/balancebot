@@ -20,7 +20,7 @@ U 1 1 5BCB9F92
 P 5650 3950
 F 0 "U3" H 5625 6287 60  0000 C CNN
 F 1 "ESP32mini" H 5625 6181 60  0000 C CNN
-F 2 "modules:ESP32mini" H 5700 6250 60  0001 C CNN
+F 2 "BalanceBot:ESP32mini" H 5700 6250 60  0001 C CNN
 F 3 "" H 5200 4400 60  0001 C CNN
 	1    5650 3950
 	1    0    0    -1  
@@ -149,7 +149,7 @@ Connection ~ 2900 2300
 Wire Wire Line
 	2900 2300 2900 2450
 Text GLabel 3000 2600 2    60   Input ~ 0
-IO17
+IO26
 Wire Wire Line
 	3000 2600 2900 2600
 Wire Wire Line
@@ -255,8 +255,6 @@ Wire Wire Line
 	4550 3300 4550 3450
 Wire Wire Line
 	4550 3450 4650 3450
-NoConn ~ 4650 4250
-NoConn ~ 4650 4150
 NoConn ~ 4650 4000
 NoConn ~ 4650 3900
 NoConn ~ 4650 3700
@@ -464,8 +462,6 @@ Wire Wire Line
 	6600 3800 7550 3800
 Wire Wire Line
 	7900 3900 7800 3900
-Wire Wire Line
-	6600 4000 7800 4000
 $Comp
 L Device:R R4
 U 1 1 5BCE6CBE
@@ -495,9 +491,6 @@ Wire Wire Line
 	7550 3700 6600 3700
 Wire Wire Line
 	7800 3600 7800 3900
-Connection ~ 7800 3900
-Wire Wire Line
-	7800 3900 6600 3900
 $Comp
 L power:+3V3 #PWR0113
 U 1 1 5BCEA351
@@ -547,7 +540,6 @@ Wire Wire Line
 	7550 3800 8350 3800
 Wire Wire Line
 	7800 4000 7800 4100
-Connection ~ 7800 4000
 Wire Wire Line
 	7800 4000 8350 4000
 $Comp
@@ -620,8 +612,6 @@ Wire Wire Line
 	4950 5650 4950 5600
 Wire Wire Line
 	4950 5200 4950 5250
-Wire Wire Line
-	5250 5000 5250 5600
 Wire Wire Line
 	5250 5600 4950 5600
 Connection ~ 4950 5600
@@ -783,30 +773,6 @@ F 3 "~" H 8100 5700 50  0001 C CNN
 	1    8100 5700
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	7900 5000 7200 5000
-Wire Wire Line
-	7200 5000 7200 4100
-Wire Wire Line
-	7200 4100 6600 4100
-Wire Wire Line
-	7100 4600 7100 5100
-Wire Wire Line
-	7100 5100 7900 5100
-Wire Wire Line
-	6600 4600 7100 4600
-Wire Wire Line
-	6600 4400 7000 4400
-Wire Wire Line
-	7000 4400 7000 5700
-Wire Wire Line
-	7000 5700 7900 5700
-Wire Wire Line
-	7900 5800 6900 5800
-Wire Wire Line
-	6900 5800 6900 4500
-Wire Wire Line
-	6900 4500 6600 4500
 $Comp
 L power:GND #PWR0122
 U 1 1 5BD2AC58
@@ -898,7 +864,7 @@ U 1 1 5BD562BF
 P 8150 1250
 F 0 "U4" H 8150 1565 50  0000 C CNN
 F 1 "DSN-MINI-360" H 8150 1474 50  0000 C CNN
-F 2 "dsn-mini-360:DSN-MINI-360" H 8150 1250 50  0001 C CNN
+F 2 "BalanceBot:DSN-MINI-360" H 8150 1250 50  0001 C CNN
 F 3 "regulator\\lm78xx.pdf" H 8150 1250 50  0001 C CNN
 	1    8150 1250
 	1    0    0    -1  
@@ -1014,79 +980,52 @@ $EndComp
 $Comp
 L Connector_Generic:Conn_01x07 J6
 U 1 1 5BDCCE67
-P 5550 6300
-F 0 "J6" V 5423 6680 50  0000 L CNN
-F 1 "Conn_01x07" V 5514 6680 50  0000 L CNN
-F 2 "Connector_JST:JST_XH_B07B-XH-A_1x07_P2.50mm_Vertical" H 5550 6300 50  0001 C CNN
-F 3 "~" H 5550 6300 50  0001 C CNN
-	1    5550 6300
+P 5550 6650
+F 0 "J6" V 5423 7030 50  0000 L CNN
+F 1 "Conn_01x07" V 5514 7030 50  0000 L CNN
+F 2 "Connector_JST:JST_XH_B07B-XH-A_1x07_P2.50mm_Vertical" H 5550 6650 50  0001 C CNN
+F 3 "~" H 5550 6650 50  0001 C CNN
+	1    5550 6650
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	5350 5000 5350 6100
-Wire Wire Line
-	5450 6100 5450 5000
-Wire Wire Line
-	6700 5800 5650 5800
-Wire Wire Line
-	5650 5800 5650 6100
-Wire Wire Line
-	6600 4200 6700 4200
-Wire Wire Line
-	6700 4200 6700 5800
-Wire Wire Line
-	6600 4300 6600 4400
-Wire Wire Line
-	6600 5700 5550 5700
-Wire Wire Line
-	5550 5700 5550 6100
-Connection ~ 6600 4400
-Wire Wire Line
-	6600 4400 6600 4500
-Connection ~ 6600 4500
-Wire Wire Line
-	6600 4500 6600 4600
-Connection ~ 6600 4600
-Wire Wire Line
-	6600 4600 6600 5700
-Wire Wire Line
 	4950 6000 5250 6000
 Wire Wire Line
-	5250 6000 5250 6100
+	5250 6000 5250 6450
 Connection ~ 4950 6000
 Wire Wire Line
 	4950 6000 4950 5950
 $Comp
 L power:+3V3 #PWR01
 U 1 1 5BDEE931
-P 6050 5900
-F 0 "#PWR01" H 6050 5750 50  0001 C CNN
-F 1 "+3V3" V 6065 6028 50  0000 L CNN
-F 2 "" H 6050 5900 50  0001 C CNN
-F 3 "" H 6050 5900 50  0001 C CNN
-	1    6050 5900
+P 6050 6150
+F 0 "#PWR01" H 6050 6000 50  0001 C CNN
+F 1 "+3V3" V 6065 6278 50  0000 L CNN
+F 2 "" H 6050 6150 50  0001 C CNN
+F 3 "" H 6050 6150 50  0001 C CNN
+	1    6050 6150
 	0    1    1    0   
 $EndComp
 $Comp
 L power:+5V #PWR02
 U 1 1 5BDEE9F0
-P 6050 6050
-F 0 "#PWR02" H 6050 5900 50  0001 C CNN
-F 1 "+5V" V 6065 6178 50  0000 L CNN
-F 2 "" H 6050 6050 50  0001 C CNN
-F 3 "" H 6050 6050 50  0001 C CNN
-	1    6050 6050
+P 6050 6300
+F 0 "#PWR02" H 6050 6150 50  0001 C CNN
+F 1 "+5V" V 6065 6428 50  0000 L CNN
+F 2 "" H 6050 6300 50  0001 C CNN
+F 3 "" H 6050 6300 50  0001 C CNN
+	1    6050 6300
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	6050 5900 5750 5900
+	6050 6150 5750 6150
 Wire Wire Line
-	5750 5900 5750 6100
+	5750 6150 5750 6450
 Wire Wire Line
-	6050 6050 5850 6050
+	6050 6300 5850 6300
 Wire Wire Line
-	5850 6050 5850 6100
-Text Notes 5450 6550 0    60   ~ 0
+	5850 6300 5850 6450
+Text Notes 5250 6850 0    60   ~ 0
 Ext
 $Comp
 L power:PWR_FLAG #FLG0103
@@ -1102,20 +1041,114 @@ $EndComp
 Wire Wire Line
 	2650 3550 2550 3550
 $Comp
-L Device:C C?
+L Device:C C10
 U 1 1 5BD121A4
 P 5250 5800
-F 0 "C?" H 5150 5900 50  0000 L CNN
+F 0 "C10" H 5150 5900 50  0000 L CNN
 F 1 "100n" H 5500 6000 50  0000 L CNN
-F 2 "" H 5288 5650 50  0001 C CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 5288 5650 50  0001 C CNN
 F 3 "~" H 5250 5800 50  0001 C CNN
 	1    5250 5800
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
 	5250 5650 5250 5600
-Connection ~ 5250 5600
 Wire Wire Line
 	5250 5950 5250 6000
 Connection ~ 5250 6000
+Wire Wire Line
+	6600 4200 7300 4200
+Text GLabel 5550 5300 2    60   Input ~ 0
+IO2
+Text GLabel 5550 5450 2    60   Input ~ 0
+IO0
+Text GLabel 7000 5000 0    60   Input ~ 0
+IO2
+Text GLabel 7000 5100 0    60   Input ~ 0
+IO0
+Wire Wire Line
+	7000 5100 7900 5100
+Wire Wire Line
+	7000 5000 7900 5000
+Text GLabel 7000 5700 0    60   Input ~ 0
+IO4
+Text GLabel 7000 5800 0    60   Input ~ 0
+IO17
+Wire Wire Line
+	7000 5800 7900 5800
+Wire Wire Line
+	7900 5700 7000 5700
+Text GLabel 5550 5150 2    60   Input ~ 0
+IO4
+Wire Wire Line
+	5450 5000 5450 5150
+Wire Wire Line
+	5450 5150 5550 5150
+Wire Wire Line
+	5350 5300 5550 5300
+Wire Wire Line
+	5350 5000 5350 5300
+Wire Wire Line
+	5250 5450 5550 5450
+Wire Wire Line
+	5250 5000 5250 5450
+Text GLabel 4650 4150 0    60   Input ~ 0
+TXD
+Text GLabel 4650 4250 0    60   Input ~ 0
+RXD
+Text GLabel 5850 6050 2    60   Input ~ 0
+IO35
+Text GLabel 5850 5950 2    60   Input ~ 0
+IO26
+Text GLabel 5850 5850 2    60   Input ~ 0
+RXD
+Text GLabel 5850 5750 2    60   Input ~ 0
+TXD
+Wire Wire Line
+	5850 6050 5650 6050
+Wire Wire Line
+	5650 6050 5650 6450
+Wire Wire Line
+	5550 6450 5550 5950
+Wire Wire Line
+	5550 5950 5850 5950
+Wire Wire Line
+	5850 5850 5450 5850
+Wire Wire Line
+	5450 5850 5450 6450
+Wire Wire Line
+	5850 5750 5350 5750
+Wire Wire Line
+	5350 5750 5350 6450
+Text GLabel 6800 4100 2    60   Input ~ 0
+IO26
+Text GLabel 6800 4600 2    60   Input ~ 0
+IO35
+Wire Wire Line
+	6800 4600 6600 4600
+Wire Wire Line
+	6800 4100 6600 4100
+NoConn ~ 6600 3900
+NoConn ~ 6600 4400
+NoConn ~ 6600 4500
+Text GLabel 6800 4300 2    60   Input ~ 0
+IO32
+Wire Wire Line
+	6800 4300 6600 4300
+Text GLabel 4700 5600 0    60   Input ~ 0
+IO32
+Wire Wire Line
+	4700 5600 4950 5600
+Connection ~ 7800 3900
+Wire Wire Line
+	7800 4000 7300 4000
+Wire Wire Line
+	7300 4000 7300 4200
+Connection ~ 7800 4000
+Wire Wire Line
+	7100 3900 7100 4000
+Wire Wire Line
+	7100 4000 6600 4000
+Wire Wire Line
+	7100 3900 7800 3900
 $EndSCHEMATC
