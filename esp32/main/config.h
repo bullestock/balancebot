@@ -44,11 +44,11 @@
 #define TARGET_SPEED_SMOOTHING 0.001
 
 // IMU filter parameters
-#define MAHONY_FILTER_KP 1.0
-#define MAHONY_FILTER_KI 0.01
+#define MAHONY_FILTER_KP 2.0
+#define MAHONY_FILTER_KI 0//0.01
 #define IMU_SAMPLE_TIME (1.0f / 1660.0f)
 
-// The robot will let the sensor fusion to settle for
+// The robot will let the sensor fusion settle for
 // a defined number of milliseconds
 #define ORIENTATION_STABILIZE_DURATION 2000
 

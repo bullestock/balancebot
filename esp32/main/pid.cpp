@@ -58,8 +58,7 @@ double pid_compute(double input, double setpoint,
                           settings->out_min, settings->out_max);
     double d_term = settings->Kd_over_dt * (input - state->last_input);
     double output = p_term + state->i_term + d_term;
-    if (show_debug)
-        printf("error %f p_term %f i_term %f d_term %f output %f\n", error, p_term, state->i_term, d_term, output);
+    //if (show_debug) printf("error %f p_term %f i_term %f d_term %f output %f\n", error, p_term, state->i_term, d_term, output);
     state->last_input = input;
     return clamp(output, settings->out_min, settings->out_max);
 }

@@ -169,7 +169,7 @@ void battery_task(void*)
 
 void main_loop(void* pvParameters)
 {
-    TickType_t time_old = 0;
+    TickType_t time_last = xTaskGetTickCount();
     TickType_t current_time = 0;
     int n = 0;
     double smoothed_target_speed = 0;
@@ -179,7 +179,7 @@ void main_loop(void* pvParameters)
     TickType_t last_wind_up = 0;
 
     int loopcount = 0;
-#define SHOW_DEBUG() ((my_state == RUNNING) && (loopcount == 0))
+#define SHOW_DEBUG() 0 //((my_state == RUNNING) && (loopcount == 0))
     
     while (1)
     {
@@ -190,14 +190,18 @@ void main_loop(void* pvParameters)
         vTaskDelay(1/portTICK_PERIOD_MS);
 
         //xTaskNotifyWait(0, 0, NULL, 1);
+        // 700 us
         int16_t raw_data[6];
         if (!imu->read_raw_data(raw_data))
         {
-            printf("Reading IMU failed with\n");
+            printf("Reading IMU failed\n");
             continue;
         }
-        
+        if (loopcount == 1)
+            printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
+
         // Update orientation estimate
+        // < 100 us
         {
             MutexLock lock(orientation_mutex);
             mahony_filter_update(&imuparams, &raw_data[0], &raw_data[3], &gravity);
@@ -213,7 +217,9 @@ void main_loop(void* pvParameters)
             if (SHOW_DEBUG())
                 printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
         }
+
         // Exponential smoothing of target speed
+        
         double motor_bias;
         {
             MutexLock lock(orientation_mutex);
@@ -238,6 +244,8 @@ void main_loop(void* pvParameters)
             if (fabs(sin_pitch - STABLE_ANGLE) < FALL_LIMIT &&
                 fabs(sin_roll) < ROLL_LIMIT)
             {
+                //printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
+
                 // Perform PID update
                 double target_angle, motor_speed;
                 {
@@ -248,14 +256,23 @@ void main_loop(void* pvParameters)
                                                SHOW_DEBUG());
 
                     if (sin_pitch < (target_angle - HIGH_PID_LIMIT))
+                    {
+                        printf("MAX\n");
                         motor_speed = -1.0;
+                    }
                     else if (sin_pitch > target_angle + HIGH_PID_LIMIT)
+                    {
+                        printf("MIN\n");
                         motor_speed = 1.0;
+                    }
                     else
+                    {
                         motor_speed = pid_compute(sin_pitch, target_angle,
                                                   &pid_settings_arr[ANGLE], &angle_pid_state,
                                                   SHOW_DEBUG());
-                    if (SHOW_DEBUG())
+                        printf("M %f\n", motor_speed);
+                    }
+                    //if (SHOW_DEBUG())
                         printf("PID update: ta %f sp %f bias %f\n", target_angle, motor_speed, motor_bias);
                 }
 
@@ -314,9 +331,10 @@ void main_loop(void* pvParameters)
             if (n == 1000)
             {
                 n = 0;
-                auto looptime = elapsed_time_us(current_time, time_old);
-                printf("Looptime: %u ms\n", looptime/1000);
-                time_old = current_time;
+                const auto now = xTaskGetTickCount();
+                auto looptime = elapsed_time_us(now, time_last);
+                printf("Looptime: %u us\n", looptime/1000);
+                time_last = now;
             }
         }
         else if (LOGMODE == LOG_RAW)
