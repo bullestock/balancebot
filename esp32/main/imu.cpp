@@ -4,9 +4,9 @@
 
 #include <cstring>
 
-#define I2C_MASTER_SCL_IO          GPIO_NUM_14
-#define I2C_MASTER_SDA_IO          GPIO_NUM_27
-#define I2C_MASTER_NUM             I2C_NUM_1
+#define I2C_MASTER_SCL_IO          GPIO_NUM_18
+#define I2C_MASTER_SDA_IO          GPIO_NUM_19
+#define I2C_MASTER_NUM             I2C_NUM_0
 #define I2C_MASTER_FREQ_HZ         1000000
 
 #define IMU_ADDR 0x6a
@@ -56,8 +56,8 @@ Imu::Imu()
     conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
     i2c_param_config(I2C_MASTER_NUM, &conf);
-    i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0,
-                       0); //!! interrupt flag ESP_INTR_FLAG_
+    assert(!i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0,
+                               0)); //!! interrupt flag ESP_INTR_FLAG_
 
     // Configure IMU parameters
 
@@ -77,7 +77,7 @@ Imu::Imu()
         assert(ret == 0);
         ++i;
     }
-
+    
     // Check that the WHO_AM_I register reports the correct value
     
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -99,7 +99,6 @@ Imu::Imu()
     i2c_cmd_link_delete(cmd);
     assert(ret == 0);
     assert(whoami == LSM6DS3_WHO_AM_I_VALUE);
-
 }
 
 bool Imu::read_raw_data(int16_t* data)
@@ -111,8 +110,8 @@ bool Imu::read_raw_data(int16_t* data)
     i2c_master_stop(cmd);
     auto ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
-    if (ret != 0)
-        return false;
+    printf("ret: %d\n", ret);
+    assert(ret == 0); // TIMEOUT
 
     cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -125,8 +124,7 @@ bool Imu::read_raw_data(int16_t* data)
     i2c_master_stop(cmd);
     ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
-    if (ret != 0)
-        return false;
+    assert(ret == 0);
 
     auto my_data = (uint8_t*) data;
     memcpy(&my_data[6], &tmp[0], 6);
