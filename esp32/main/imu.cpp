@@ -2,6 +2,9 @@
 
 #include <driver/i2c.h>
 
+#include "lsm6ds3_driver.h"
+//#include "i2c_driver.h"
+
 #include <cstring>
 
 #define I2C_MASTER_SCL_IO          GPIO_NUM_18
@@ -99,10 +102,21 @@ Imu::Imu()
     i2c_cmd_link_delete(cmd);
     assert(ret == 0);
     assert(whoami == LSM6DS3_WHO_AM_I_VALUE);
+
+    uint8_t data = 0;
+    assert(lsm6ds3_i2c_read_chipid(I2C_MASTER_NUM, IMU_ADDR, &data) == 0);
+    assert(data == LSM6DS3_WHO_AM_I_VALUE);
+
+    const int N = 6;
+    uint8_t tmp[N];
+    assert(lsm6ds3_i2c_read_accel(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
+    printf("Accel %02X %02X %02X %02X %02X %02X\n", tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
 }
 
 bool Imu::read_raw_data(int16_t* data)
 {
+    return false;
+    
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (IMU_ADDR << 1) | I2C_MASTER_WRITE, 1);

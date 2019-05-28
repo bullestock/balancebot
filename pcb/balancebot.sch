@@ -1151,4 +1151,44 @@ Wire Wire Line
 	7100 4000 6600 4000
 Wire Wire Line
 	7100 3900 7800 3900
+$Comp
+L Device:R R?
+U 1 1 5C95CAAC
+P 2350 1200
+F 0 "R?" H 2420 1246 50  0000 L CNN
+F 1 "10K" H 2420 1155 50  0000 L CNN
+F 2 "" V 2280 1200 50  0001 C CNN
+F 3 "~" H 2350 1200 50  0001 C CNN
+	1    2350 1200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 5C95CB31
+P 2550 1200
+F 0 "R?" H 2620 1246 50  0000 L CNN
+F 1 "10K" H 2620 1155 50  0000 L CNN
+F 2 "" V 2480 1200 50  0001 C CNN
+F 3 "~" H 2550 1200 50  0001 C CNN
+	1    2550 1200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2350 1350 2350 1450
+Connection ~ 2350 1450
+Wire Wire Line
+	2550 1350 2550 1600
+Connection ~ 2550 1600
+Wire Wire Line
+	2550 1050 2550 950 
+Wire Wire Line
+	2550 950  2350 950 
+Wire Wire Line
+	2150 950  2150 1650
+Connection ~ 2150 1650
+Wire Wire Line
+	2350 950  2350 1050
+Connection ~ 2350 950 
+Wire Wire Line
+	2350 950  2150 950 
 $EndSCHEMATC

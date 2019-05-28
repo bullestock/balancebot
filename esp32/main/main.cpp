@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <utility>
 
 #include <freertos/FreeRTOS.h>
@@ -197,8 +198,6 @@ void main_loop(void* pvParameters)
             printf("Reading IMU failed\n");
             continue;
         }
-        if (loopcount == 1)
-            printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
 
         // Update orientation estimate
         // < 100 us
@@ -212,10 +211,6 @@ void main_loop(void* pvParameters)
             sin_roll = -gravity.data[IMU_SIDE_AXIS];
             if (IMU_INVERT_SIDE_AXIS)
                 sin_roll = -sin_roll;
-
-            // Upright ~ 0
-            if (SHOW_DEBUG())
-                printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
         }
 
         // Exponential smoothing of target speed
@@ -240,40 +235,26 @@ void main_loop(void* pvParameters)
         }
         else if (my_state == RUNNING || my_state == WOUND_UP)
         {
-            //if (SHOW_DEBUG()) printf("ap %f ar %f\n", fabs(sin_pitch - STABLE_ANGLE), fabs(sin_roll));
             if (fabs(sin_pitch - STABLE_ANGLE) < FALL_LIMIT &&
                 fabs(sin_roll) < ROLL_LIMIT)
             {
-                //printf("PITCH %f ROLL %f\n", sin_pitch, sin_roll);
-
                 // Perform PID update
                 double target_angle, motor_speed;
                 {
                     MutexLock lock(pid_mutex);
-                    //if (SHOW_DEBUG()) printf("PID update 1: ts %f ss %f\n", travel_speed, smoothed_target_speed);
                     target_angle = pid_compute(travel_speed, smoothed_target_speed,
                                                &pid_settings_arr[VEL], &vel_pid_state,
                                                SHOW_DEBUG());
 
                     if (sin_pitch < (target_angle - HIGH_PID_LIMIT))
-                    {
-                        printf("MAX\n");
                         motor_speed = -1.0;
-                    }
                     else if (sin_pitch > target_angle + HIGH_PID_LIMIT)
-                    {
-                        printf("MIN\n");
                         motor_speed = 1.0;
-                    }
                     else
-                    {
+                        //!!
                         motor_speed = pid_compute(sin_pitch, target_angle,
                                                   &pid_settings_arr[ANGLE], &angle_pid_state,
                                                   SHOW_DEBUG());
-                        printf("M %f\n", motor_speed);
-                    }
-                    //if (SHOW_DEBUG())
-                        printf("PID update: ta %f sp %f bias %f\n", target_angle, motor_speed, motor_bias);
                 }
 
                 if (fabs(motor_speed) < MOTOR_DEADBAND)
@@ -298,9 +279,6 @@ void main_loop(void* pvParameters)
                 // Estimate travel speed by exponential smoothing
                 travel_speed = exponential_smooth(travel_speed, motor_speed,
                                                   TRAVEL_SPEED_SMOOTHING);
-
-                if (SHOW_DEBUG())
-                    printf("trav %f target %f\n", travel_speed, smoothed_target_speed);
             }
             else
             {
