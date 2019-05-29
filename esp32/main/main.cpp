@@ -20,6 +20,7 @@
 
 #include "websocket_server.h"
 
+#include "console.h"
 #include "espway.h"
 #include "encoder.h"
 #include "imu.h"
@@ -128,13 +129,6 @@ double exponential_smooth(double prevVal, double newVal, double alpha)
 int elapsed_time_us(TickType_t t2, TickType_t t1)
 {
     return (t2 - t1)*portTICK_PERIOD_MS*1000;
-}
-
-// -1 to +1
-void set_motors(double m1, double m2)
-{
-    motor_a->set_speed(m1);
-    motor_b->set_speed(-m2);
 }
 
 void battery_task(void*)
@@ -404,6 +398,21 @@ void app_main()
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
 #endif
+
+    printf("Press a key to enter console\n");
+    bool debug = false;
+    for (int i = 0; i < 20; ++i)
+    {
+        if (getchar() != EOF)
+        {
+            debug = true;
+            break;
+        }
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+    if (debug)
+        run_console();        // never returns
+    printf("\nStarting application\n");
     
     wifi_setup();
     ws_server_start();

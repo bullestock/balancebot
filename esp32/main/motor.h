@@ -17,3 +17,5 @@ private:
     mcpwm_unit_t unit = (mcpwm_unit_t) 0;
     mcpwm_timer_t timer = (mcpwm_timer_t) 0;
 };
+
+void set_motors(double m1, double m2);

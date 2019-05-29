@@ -39,3 +39,12 @@ void Motor::set_speed(float speed)
     }
 }
 
+extern Motor* motor_a;
+extern Motor* motor_b;
+
+// -1 to +1
+void set_motors(double m1, double m2)
+{
+    motor_a->set_speed(m1);
+    motor_b->set_speed(-m2);
+}
