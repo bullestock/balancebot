@@ -76,7 +76,27 @@ int motor_test(int argc, char** argv)
 
 int read_imu(int argc, char** argv)
 {
+    extern Imu* imu;
+    
+    int count = 10;
+    if (argc > 1)
+        count = atoi(argv[1]);
 
+    printf("Running IMU test (%d)\n", count);
+    for (int j = 0; j < count; ++j)
+    {
+        int16_t raw_data[6];
+        if (!imu->read_raw_data(raw_data))
+        {
+            printf("Reading IMU failed\n");
+            continue;
+        }
+        printf("%d, %d, %d, %d, %d, %d\n",
+               raw_data[0], raw_data[1], raw_data[2],
+               raw_data[3], raw_data[4], raw_data[5]);
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+    
     return 0;
 }
 

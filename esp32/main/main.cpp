@@ -32,15 +32,15 @@
 #define LED_GPIO 13
 #define LED_PIN 2 // internal
 
-#define GPIO_PWM0A_OUT 16
-#define GPIO_PWM0B_OUT 17
-#define GPIO_PWM1A_OUT 18
-#define GPIO_PWM1B_OUT 19
+#define GPIO_APHASE_OUT 21
+#define GPIO_AENBL_OUT  22
+#define GPIO_BPHASE_OUT 25
+#define GPIO_BENBL_OUT  27
 
-#define GPIO_ENC_A1   22
-#define GPIO_ENC_A2   23
-#define GPIO_ENC_B1    2
-#define GPIO_ENC_B2   15
+#define GPIO_ENC_A1    2
+#define GPIO_ENC_A2    0
+#define GPIO_ENC_B1    4
+#define GPIO_ENC_B2   17
 
 #define GREEN   0, 255, 0
 #define BLUE    0, 0, 255
@@ -390,8 +390,8 @@ void app_main()
                        2.0 * 2000.0f * M_PI / 180.0f, IMU_SAMPLE_TIME);
 
     imu = new Imu();
-    motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_PWM0A_OUT, GPIO_PWM0B_OUT);
-    motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_PWM1A_OUT, GPIO_PWM1B_OUT);
+    motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_AENBL_OUT, GPIO_APHASE_OUT);
+    motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_BENBL_OUT, GPIO_BPHASE_OUT);
 #if 0
     auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
