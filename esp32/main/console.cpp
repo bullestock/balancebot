@@ -1,7 +1,9 @@
 #include "console.h"
 
+#include "espway.h"
 #include "motor.h"
 #include "imu.h"
+#include "imu_math.h"
 
 #include "esp_system.h"
 #include "esp_log.h"
@@ -77,6 +79,8 @@ int motor_test(int argc, char** argv)
 int read_imu(int argc, char** argv)
 {
     extern Imu* imu;
+    extern mahony_filter_state imuparams;
+    extern vector3d gravity;
     
     int count = 10;
     if (argc > 1)
@@ -86,14 +90,29 @@ int read_imu(int argc, char** argv)
     for (int j = 0; j < count; ++j)
     {
         int16_t raw_data[6];
-        if (!imu->read_raw_data(raw_data))
+        for (int i = 0; i < 100; ++i)
         {
-            printf("Reading IMU failed\n");
-            continue;
+            if (!imu->read_raw_data(raw_data))
+            {
+                printf("Reading IMU failed\n");
+                continue;
+            }
+            mahony_filter_update(&imuparams, &raw_data[0], &raw_data[3], &gravity);
+            vTaskDelay(1/portTICK_PERIOD_MS);
         }
         printf("%d, %d, %d, %d, %d, %d\n",
                raw_data[0], raw_data[1], raw_data[2],
                raw_data[3], raw_data[4], raw_data[5]);
+        // Calculate sine of pitch angle from gravity vector
+        auto sin_pitch = -gravity.data[IMU_FORWARD_AXIS];
+        if (IMU_INVERT_FORWARD_AXIS)
+            sin_pitch = -sin_pitch;
+        auto sin_roll = -gravity.data[IMU_SIDE_AXIS];
+        if (IMU_INVERT_SIDE_AXIS)
+            sin_roll = -sin_roll;
+        printf("%f, %f, %f -> %f, %f\n",
+               gravity.data[0], gravity.data[1], gravity.data[2],
+               sin_pitch, sin_roll);
         vTaskDelay(100/portTICK_PERIOD_MS);
     }
     
