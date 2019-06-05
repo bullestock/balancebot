@@ -54,7 +54,7 @@ int i2c_writeBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uin
 	}
 
     // Setup the target device for a write to a register address by queuing up addr and the bytes
-    cmd= i2c_cmd_link_create();
+    cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, chipI2cAddr << 1 | WRITE_BIT, ACK_CHECK_EN);
 
@@ -199,7 +199,7 @@ int i2c_readBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
 	}
 
     // Setup the target device for an access to a register address by queuing up addr and the bytes
-	cmd= i2c_cmd_link_create();
+	cmd = i2c_cmd_link_create();
 	i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, chipI2cAddr << 1 | WRITE_BIT, ACK_CHECK_EN);
 	i2c_master_write_byte(cmd, regAddr, ACK_CHECK_EN);
@@ -209,7 +209,7 @@ int i2c_readBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
 	if (retCode == ESP_FAIL) {
 		return retCode;
 	}
-	vTaskDelay(2 / portTICK_RATE_MS);
+	//!!vTaskDelay(2 / portTICK_RATE_MS);
 
 	// Now setup for the read address mode
 	cmd = i2c_cmd_link_create();
@@ -321,7 +321,7 @@ int i2c_readBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_
  * @retval				Zero indicates no error.  -1 is timeout
  */
 int i2c_waitOnRegStatus(i2c_port_t i2c_num, uint8_t chipI2cAddr,
-		uint8_t regAddr, uint8_t bitMask, int waitCondition, int timeoutTics)
+                        uint8_t regAddr, uint8_t bitMask, int waitCondition, int timeoutTics)
 {
 	int retCode = 0;
 	TickType_t startTics;
