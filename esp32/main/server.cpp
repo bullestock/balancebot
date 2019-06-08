@@ -253,7 +253,7 @@ static void http_serve(struct netconn *conn) {
                 && !strstr(buf, "Upgrade: websocket")) {
                 ESP_LOGI(TAG, "Sending /");
                 netconn_write(conn, HTML_HEADER, sizeof(HTML_HEADER)-1, NETCONN_NOCOPY);
-                netconn_write(conn, index_html_start, index_html_len, NETCONN_NOCOPY);
+                netconn_write(conn, index_html_start, index_html_len-1, NETCONN_NOCOPY);
                 netconn_close(conn);
                 netconn_delete(conn);
                 netbuf_delete(inbuf);
@@ -270,7 +270,7 @@ static void http_serve(struct netconn *conn) {
             else if (strstr(buf, "GET /pid") && !strstr(buf, "GET /pid.bundle.js")) {
                 ESP_LOGI(TAG, "Sending /pid.html");
                 netconn_write(conn, HTML_HEADER, sizeof(HTML_HEADER)-1, NETCONN_NOCOPY);
-                netconn_write(conn, pid_html_start, pid_html_len, NETCONN_NOCOPY);
+                netconn_write(conn, pid_html_start, pid_html_len-1, NETCONN_NOCOPY);
                 netconn_close(conn);
                 netconn_delete(conn);
                 netbuf_delete(inbuf);
@@ -278,7 +278,7 @@ static void http_serve(struct netconn *conn) {
             else if(strstr(buf, "GET /index.bundle.js ")) {
                 ESP_LOGI(TAG, "Sending /index.bundle.js");
                 netconn_write(conn, JS_HEADER, sizeof(JS_HEADER)-1, NETCONN_NOCOPY);
-                netconn_write(conn, index_bundle_js_start, index_bundle_js_len, NETCONN_NOCOPY);
+                netconn_write(conn, index_bundle_js_start, index_bundle_js_len-1, NETCONN_NOCOPY);
                 netconn_close(conn);
                 netconn_delete(conn);
                 netbuf_delete(inbuf);
@@ -286,7 +286,7 @@ static void http_serve(struct netconn *conn) {
             else if(strstr(buf, "GET /pid.bundle.js ")) {
                 ESP_LOGI(TAG, "Sending /pid.bundle.js");
                 netconn_write(conn, JS_HEADER, sizeof(JS_HEADER)-1, NETCONN_NOCOPY);
-                netconn_write(conn, pid_bundle_js_start, pid_bundle_js_len, NETCONN_NOCOPY);
+                netconn_write(conn, pid_bundle_js_start, pid_bundle_js_len-1, NETCONN_NOCOPY);
                 netconn_close(conn);
                 netconn_delete(conn);
                 netbuf_delete(inbuf);
