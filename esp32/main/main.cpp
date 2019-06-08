@@ -29,7 +29,7 @@
 #include "locks.h"
 #include "motor.h"
 
-#define LED_GPIO 13
+#define LED_GPIO 16
 #define LED_PIN 2 // internal
 
 #define GPIO_APHASE_OUT 21
@@ -41,10 +41,6 @@
 #define GPIO_ENC_A2    0
 #define GPIO_ENC_B1    4
 #define GPIO_ENC_B2   17
-
-#define GREEN   0, 255, 0
-#define BLUE    0, 0, 255
-#define YELLOW  255, 255, 0
 
 #define PRIO_COMMUNICATION  2
 #define PRIO_MAIN_LOOP      (TCPIP_THREAD_PRIO + 1)
@@ -72,7 +68,7 @@ void event_task(void* p)
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
-static mahony_filter_state imuparams;
+mahony_filter_state imuparams;
 static pidstate vel_pid_state;
 static pidstate angle_pid_state;
 
@@ -83,7 +79,7 @@ static double target_speed = 0;
 static double steering_bias = 0;
 
 static SemaphoreHandle_t orientation_mutex;
-static vector3d gravity = {{ 0.0, 0.0, 1.0 }};
+vector3d gravity = {{ 0.0, 0.0, 1.0 }};
 
 enum log_mode { LOG_FREQ, LOG_RAW, LOG_PITCH, LOG_NONE };
 
@@ -170,21 +166,21 @@ void main_loop(void* pvParameters)
     double smoothed_target_speed = 0;
     double travel_speed = 0;
     state my_state = STABILIZING_ORIENTATION;
-    TickType_t stage_started = 0;
-    TickType_t last_wind_up = 0;
+    TickType_t stage_started = time_last;
+    TickType_t last_wind_up = time_last;
 
     int loopcount = 0;
-#define SHOW_DEBUG() 0 //((my_state == RUNNING) && (loopcount == 0))
-    
+#define SHOW_DEBUG() 0 // (my_state == RUNNING)// && (loopcount == 0))
+
+    led->set_color(Led::Init);
     while (1)
     {
         ++loopcount;
         if (loopcount >= 100)
             loopcount = 0;
         
-        vTaskDelay(1/portTICK_PERIOD_MS);
-
-        //xTaskNotifyWait(0, 0, NULL, 1);
+        //xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
+        
         // 700 us
         int16_t raw_data[6];
         if (!imu->read_raw_data(raw_data))
@@ -222,9 +218,11 @@ void main_loop(void* pvParameters)
         if (my_state == STABILIZING_ORIENTATION &&
             elapsed_time_us(current_time, stage_started) > ORIENTATION_STABILIZE_DURATION_US)
         {
-            printf("Done stabilizing\n");
+            led->set_color(Led::Stabilized);
+            printf("Done stabilizing at %u\n", current_time);
+            printf("sin_pitch %f sin_roll %f\n", sin_pitch, sin_roll);
             my_state = RUNNING;
-            stage_started = current_time;
+            last_wind_up = current_time;
             imuparams.Kp = MAHONY_FILTER_KP;
         }
         else if (my_state == RUNNING || my_state == WOUND_UP)
@@ -239,7 +237,6 @@ void main_loop(void* pvParameters)
                     target_angle = pid_compute(travel_speed, smoothed_target_speed,
                                                &pid_settings_arr[VEL], &vel_pid_state,
                                                SHOW_DEBUG());
-
                     if (sin_pitch < (target_angle - HIGH_PID_LIMIT))
                         motor_speed = -1.0;
                     else if (sin_pitch > target_angle + HIGH_PID_LIMIT)
@@ -249,6 +246,8 @@ void main_loop(void* pvParameters)
                         motor_speed = pid_compute(sin_pitch, target_angle,
                                                   &pid_settings_arr[ANGLE], &angle_pid_state,
                                                   SHOW_DEBUG());
+                    if (SHOW_DEBUG())
+                        printf("motor_speed %f\n", motor_speed);
                 }
 
                 if (fabs(motor_speed) < MOTOR_DEADBAND)
@@ -262,12 +261,18 @@ void main_loop(void* pvParameters)
 
                 if (motor_speed != 1.0 && motor_speed != -1.0)
                     last_wind_up = current_time;
-                else if (elapsed_time_us(current_time, last_wind_up) > WINDUP_TIMEOUT_US)
+                else
                 {
-                    set_motors(0, 0);
-                    printf("WOUND UP!\n");
-                    my_state = WOUND_UP;
-                    led->set_color(BLUE);
+                    const auto us_since_last_windup = elapsed_time_us(current_time, last_wind_up);
+                    if (us_since_last_windup > WINDUP_TIMEOUT_US)
+                    {
+                        set_motors(0, 0);
+                        printf("WOUND UP at %u (%d)\n", current_time, us_since_last_windup);
+                        my_state = WOUND_UP;
+                        set_motors(0, 0);
+                        led->set_color(Led::WoundUp);
+                        vTaskDelay(100/portTICK_PERIOD_MS);
+                    }
                 }
 
                 // Estimate travel speed by exponential smoothing
@@ -278,7 +283,7 @@ void main_loop(void* pvParameters)
             {
                 printf("FALLEN!\n");
                 my_state = FALLEN;
-                led->set_color(BLUE);
+                led->set_color(Led::Fallen);
                 travel_speed = 0;
                 smoothed_target_speed = 0;
                 set_motors(0, 0);
@@ -291,7 +296,7 @@ void main_loop(void* pvParameters)
             printf("Running again!\n");
             my_state = RUNNING;
             last_wind_up = current_time;
-            led->set_color(GREEN);
+            led->set_color(Led::Running);
             pid_reset(sin_pitch, 0, &pid_settings_arr[ANGLE], &angle_pid_state);
             pid_reset(0, STABLE_ANGLE, &pid_settings_arr[VEL],
                       &vel_pid_state);
@@ -372,7 +377,7 @@ extern "C"
 void app_main()
 {
     led = new Led(LED_GPIO);
-    led->set_color(YELLOW);
+    led->set_color(0, 0, 0);
 
     pid_mutex = xSemaphoreCreateMutex();
     orientation_mutex = xSemaphoreCreateMutex();
