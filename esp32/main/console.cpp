@@ -131,15 +131,38 @@ int led_test(int argc, char** argv)
     printf("Running LED test (%d)\n", count);
     for (int j = 0; j < count; ++j)
     {
-        led->set_color(RED);
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        led->set_color(GREEN);
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        led->set_color(BLUE);
-        vTaskDelay(500/portTICK_PERIOD_MS);
-        led->set_color(WHITE);
-        vTaskDelay(500/portTICK_PERIOD_MS);
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(i, 0, 0);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(255-i, i, 0);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(0, 255-i, 0);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(0, 255-i, i);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(0, 0, i);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
+        for (int i = 0; i < 256; ++i)
+        {
+            led->set_color(i, i, i);
+            vTaskDelay(5/portTICK_PERIOD_MS);
+        }
     }
+    led->set_color(0, 0, 0);
     return 0;
 }
 
