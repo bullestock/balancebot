@@ -4,6 +4,7 @@
 #include "motor.h"
 #include "imu.h"
 #include "imu_math.h"
+#include "led.h"
 
 #include "esp_system.h"
 #include "esp_log.h"
@@ -119,6 +120,29 @@ int read_imu(int argc, char** argv)
     return 0;
 }
 
+int led_test(int argc, char** argv)
+{
+    extern Led* led;
+
+    int count = 1;
+    if (argc > 1)
+        count = atoi(argv[1]);
+
+    printf("Running LED test (%d)\n", count);
+    for (int j = 0; j < count; ++j)
+    {
+        led->set_color(RED);
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        led->set_color(GREEN);
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        led->set_color(BLUE);
+        vTaskDelay(500/portTICK_PERIOD_MS);
+        led->set_color(WHITE);
+        vTaskDelay(500/portTICK_PERIOD_MS);
+    }
+    return 0;
+}
+
 void initialize_console()
 {
     /* Disable buffering on stdin */
@@ -196,6 +220,15 @@ void run_console()
         .argtable = nullptr
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd2));
+
+    const esp_console_cmd_t cmd3 = {
+        .command = "ledtest",
+        .help = "Test LEDs",
+        .hint = NULL,
+        .func = &led_test,
+        .argtable = nullptr
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd3));
 
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
