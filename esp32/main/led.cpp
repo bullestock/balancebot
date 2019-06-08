@@ -35,3 +35,28 @@ void Led::set_color(int r, int g, int b)
     strand.pixels[0] = strand.pixels[1] = pixelFromRGB(g, r, b);
     digitalLeds_updatePixels(&strand);
 }
+
+void Led::set_color(Colour c)
+{
+    switch (c)
+    {
+    case Init:
+        set_color(0, 64, 64);
+        return;
+    case Stabilized:
+        set_color(255, 255, 255);
+        return;
+    case Running:
+        set_color(0, 255, 0);
+        return;
+    case Fallen:
+        set_color(0, 0, 255);
+        return;
+    case WoundUp:
+        set_color(255, 0, 0);
+        return;
+    default:
+        ESP_ERROR_CHECK(0);
+        break;
+    }
+}
