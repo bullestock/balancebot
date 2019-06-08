@@ -1,5 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/task.h>
+#include "esp_event.h"
+
 #include "pid.h"
 
 #include "config.h"
