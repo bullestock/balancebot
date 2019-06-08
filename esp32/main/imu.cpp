@@ -70,15 +70,16 @@ Imu::Imu()
     const int N = 6;
     uint8_t tmp[N];
     assert(lsm6ds3_i2c_read_accel(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
-    printf("Accel %02X %02X %02X %02X %02X %02X\n", tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
 }
 
 bool Imu::read_raw_data(int16_t* data)
 {
     const int N = 6;
     uint8_t tmp[N];
+    // 2 ms
     assert(lsm6ds3_i2c_read_accel(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
     memcpy(data, tmp, N);
+
     assert(lsm6ds3_i2c_read_gyro(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
     memcpy(data+3, tmp, N);
 
