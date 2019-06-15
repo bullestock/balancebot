@@ -20,6 +20,7 @@
 
 #include "websocket_server.h"
 
+#include "battery.h"
 #include "console.h"
 #include "espway.h"
 #include "encoder.h"
@@ -49,6 +50,7 @@ Led* led = nullptr;
 Motor* motor_a = nullptr;
 Motor* motor_b = nullptr;
 Imu* imu = nullptr;
+Battery* battery = nullptr;
 
 #if 0
 
@@ -127,29 +129,31 @@ int elapsed_time_us(TickType_t t2, TickType_t t1)
     return (t2 - t1)*portTICK_PERIOD_MS*1000;
 }
 
+void battery_cutoff()
+{
+    led->set_color(0, 0, 0);
+    set_motors(0, 0);
+    esp_deep_sleep_start();
+}
+
 void battery_task(void*)
 {
-    const auto channel = ADC1_GPIO34_CHANNEL;
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(channel, ADC_ATTEN_DB_2_5);
-    
-    int smoothed_battery_value = 0;
+    float smoothed_battery_value = battery->read_voltage();
     while (1)
     {
-        const int adc = adc1_get_raw(channel);
-        smoothed_battery_value = exponential_smooth(smoothed_battery_value, adc, 0.05);
-        uint16_t battery_mv = (uint16_t) (smoothed_battery_value * BATTERY_SCALE_FACTOR);
-
-        if (ENABLE_BATTERY_CUTOFF && battery_mv < BATTERY_THRESHOLD)
+        smoothed_battery_value = exponential_smooth(smoothed_battery_value, battery->read_voltage(), 0.05);
+        if (ENABLE_BATTERY_CUTOFF && smoothed_battery_value < BATTERY_THRESHOLD)
         {
             battery_cutoff();
+            printf("*** Battery cutoff: %f\n", smoothed_battery_value);
+            vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
             break;
         }
 
         uint8_t buf[3];
         buf[0] = BATTERY;
         uint16_t* payload = (uint16_t*) &buf[1];
-        payload[0] = battery_mv;
+        payload[0] = static_cast<uint16_t>(smoothed_battery_value*1000);
         ws_server_send_bin_all(buf, sizeof(buf));
 
         vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
@@ -179,7 +183,7 @@ void main_loop(void* pvParameters)
         if (loopcount >= 100)
             loopcount = 0;
         
-        //xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
+        xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
         
         // 700 us
         int16_t raw_data[6];
@@ -397,6 +401,7 @@ void app_main()
     imu = new Imu();
     motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_AENBL_OUT, GPIO_APHASE_OUT);
     motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_BENBL_OUT, GPIO_BPHASE_OUT);
+    battery = new Battery;
 #if 0
     auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);

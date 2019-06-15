@@ -11,7 +11,7 @@
 // The IMU axis pointing to the forward direction of the robot
 #define IMU_FORWARD_AXIS        IMU_Z_AXIS
 // If the positive axis specified above points backward, set this to true
-#define IMU_INVERT_FORWARD_AXIS false
+#define IMU_INVERT_FORWARD_AXIS true
 #define IMU_INVERT_SIDE_AXIS    true
 // The IMU axis pointing horizontally to the "side" of the robot when it is standing
 #define IMU_SIDE_AXIS           IMU_Y_AXIS
@@ -45,8 +45,8 @@
 
 // IMU filter parameters
 #define MAHONY_FILTER_KP 2.0
-#define MAHONY_FILTER_KI 0//0.01
-#define IMU_SAMPLE_TIME (1.0f / 1660.0f)
+#define MAHONY_FILTER_KI 0.01
+#define IMU_SAMPLE_TIME 0.001 // (1.0f / 1660.0f)
 
 // The robot will let the sensor fusion settle for
 // a defined number of milliseconds
@@ -70,12 +70,10 @@
 #define WINDUP_TIMEOUT 1000
 
 // Undervoltage cutoff check
-#define BATTERY_THRESHOLD 7400
-// The scaling of battery readings
-#define BATTERY_SCALE_FACTOR 3.72
+#define BATTERY_THRESHOLD 7.4
 #define BATTERY_CHECK_INTERVAL 500
 #define ENABLE_BATTERY_CHECK true
-#define ENABLE_BATTERY_CUTOFF false
+#define ENABLE_BATTERY_CUTOFF true
 
 #define WIFI_SSID "ESPway"
 #define WIFI_CHANNEL 1

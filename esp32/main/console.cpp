@@ -1,6 +1,7 @@
 #include "console.h"
 
 #include "espway.h"
+#include "battery.h"
 #include "motor.h"
 #include "imu.h"
 #include "imu_math.h"
@@ -166,6 +167,18 @@ int led_test(int argc, char** argv)
     return 0;
 }
 
+int read_battery(int argc, char** argv)
+{
+    extern Battery* battery;
+    for (int i = 0; i < 10; ++i)
+    {
+        printf("Battery voltage: %f V\n", battery->read_voltage());
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+
+    return 0;
+}
+
 void initialize_console()
 {
     /* Disable buffering on stdin */
@@ -253,6 +266,15 @@ void run_console()
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd3));
 
+    const esp_console_cmd_t cmd4 = {
+        .command = "readbattery",
+        .help = "Read battery voltage",
+        .hint = NULL,
+        .func = &read_battery,
+        .argtable = nullptr
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd4));
+    
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
      */
