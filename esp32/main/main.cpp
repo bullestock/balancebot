@@ -142,12 +142,19 @@ void battery_task(void*)
     while (1)
     {
         smoothed_battery_value = exponential_smooth(smoothed_battery_value, battery->read_voltage(), 0.05);
-        if (ENABLE_BATTERY_CUTOFF && smoothed_battery_value < BATTERY_THRESHOLD)
+        if (smoothed_battery_value < BATTERY_THRESHOLD)
         {
-            battery_cutoff();
-            printf("*** Battery cutoff: %f\n", smoothed_battery_value);
-            vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
-            break;
+            if (ENABLE_BATTERY_CUTOFF)
+            {
+                battery_cutoff();
+                // Terminate task
+                break;
+            }
+            else
+            {
+                disable_motors();
+                led->set_color_right(255, 0, 0);
+            }
         }
 
         uint8_t buf[3];
@@ -219,6 +226,8 @@ void main_loop(void* pvParameters)
 
         current_time = xTaskGetTickCount();
 
+        //printf("sin_pitch %f sin_roll %f\n", sin_pitch, sin_roll);
+        
         if (my_state == STABILIZING_ORIENTATION &&
             elapsed_time_us(current_time, stage_started) > ORIENTATION_STABILIZE_DURATION_US)
         {
@@ -251,7 +260,7 @@ void main_loop(void* pvParameters)
                                                   &pid_settings_arr[ANGLE], &angle_pid_state,
                                                   SHOW_DEBUG());
                     if (SHOW_DEBUG())
-                        printf("motor_speed %f\n", motor_speed);
+                        printf("Angle Kp %f motor_speed %f\n", pid_settings_arr[ANGLE].Kp, motor_speed);
                 }
 
                 if (fabs(motor_speed) < MOTOR_DEADBAND)
@@ -271,11 +280,12 @@ void main_loop(void* pvParameters)
                     if (us_since_last_windup > WINDUP_TIMEOUT_US)
                     {
                         set_motors(0, 0);
-                        printf("WOUND UP at %u (%d)\n", current_time, us_since_last_windup);
+                        if (my_state != WOUND_UP)
+                            printf("WOUND UP at %u (%d)\n", current_time, us_since_last_windup);
                         my_state = WOUND_UP;
                         set_motors(0, 0);
                         led->set_color(Led::WoundUp);
-                        vTaskDelay(100/portTICK_PERIOD_MS);
+                        //vTaskDelay(100/portTICK_PERIOD_MS);
                     }
                 }
 
