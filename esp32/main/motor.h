@@ -20,3 +20,4 @@ private:
 };
 
 void set_motors(double m1, double m2);
+void disable_motors();
