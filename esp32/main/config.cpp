@@ -39,15 +39,15 @@ void pretty_print_config()
 {
     MutexLock lock(pid_mutex);
     printf("\n\nESPway current config:\n\n"
-           "#define ANGLE_KP %f\n"
-           "#define ANGLE_KI %f\n"
-           "#define ANGLE_KD %f\n"
-           "#define VEL_KP %f\n"
-           "#define VEL_KI %f\n"
-           "#define VEL_KD %f\n"
-           "#define GYRO_X_OFFSET %d\n"
-           "#define GYRO_Y_OFFSET %d\n"
-           "#define GYRO_Z_OFFSET %d\n"
+           "ANGLE_KP %f\n"
+           "ANGLE_KI %f\n"
+           "ANGLE_KD %f\n"
+           "VEL_KP %f\n"
+           "VEL_KI %f\n"
+           "VEL_KD %f\n"
+           "GYRO_X_OFFSET %d\n"
+           "GYRO_Y_OFFSET %d\n"
+           "GYRO_Z_OFFSET %d\n"
            "\n\n",
            my_config.pid_coeffs_arr[ANGLE].p,
            my_config.pid_coeffs_arr[ANGLE].i,
