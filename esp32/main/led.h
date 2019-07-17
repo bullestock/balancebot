@@ -18,7 +18,9 @@ public:
 
     void set_color(int r, int g, int b);
     void set_color(Colour);
+    void set_color_right(int r, int g, int b);
 
 private:
     strand_t strand;
+    bool right_color_fixed = false;
 };

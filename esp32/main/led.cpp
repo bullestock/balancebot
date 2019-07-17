@@ -32,7 +32,9 @@ Led::Led(int gpio)
 
 void Led::set_color(int r, int g, int b)
 {
-    strand.pixels[0] = strand.pixels[1] = pixelFromRGB(g, r, b);
+    strand.pixels[0] = pixelFromRGB(g, r, b);
+    if (!right_color_fixed)
+        strand.pixels[1] = strand.pixels[0];
     digitalLeds_updatePixels(&strand);
 }
 
@@ -59,4 +61,11 @@ void Led::set_color(Colour c)
         ESP_ERROR_CHECK(0);
         break;
     }
+}
+
+void Led::set_color_right(int r, int g, int b)
+{
+    right_color_fixed = true;
+    strand.pixels[1] = pixelFromRGB(g, r, b);
+    digitalLeds_updatePixels(&strand);
 }
