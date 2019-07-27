@@ -26,16 +26,21 @@
 // Include the driver specific defines
 #include "lsm6ds3_driver.h"
 
+#define ODR_XL_1K66 (0x08 << 4)
+
+#define FS_G_2000_DPS (0x3 << 2)
+#define ODR_G_1K66 (0x08 << 4)
+
 //  These commands are sent to initialize LSM6DS3
 DRAM_ATTR static const i2c_cmd_table_t lsm6ds3_init_cmds[]={
-	{0x18, {0x38}, 1},		// LSM6DS3_REG_CTRL9_XL  Accel enable X,Y,Z (this is the reset default so is optional)
-    {0x10, {0x43}, 1},		// LSM6DS3_REG_CTRL1_XL  Accel 100hz sampling (0x40), 2G range (0x00), 50hz anti alias filter (0x03)
-	{0x13, {0x00}, 1},		// LSM6DS3_REG_CTRL4_C   Not sleeping, no Int enable, no temp data in fifo, I2C enabled
-	{0x16, {0x50}, 1},		// LSM6DS3_REG_CTRL7_G   Gyro settings.  High perf mode, High pass filter 0.0324hz cutoff
-    {0x19, {0x38}, 1},		// LSM6DS3_REG_CTRL10_C  Enable X,Y,Z Gyro (0x38)
-	{0x11, {0x40}, 1},		// LSM6DS3_REG_CTRL2_G   Gyro  100hz sampling (0x40), 245 degPerSec (0x00)
-    {0x12, {0x54}, 1},		// LSM6DS3_REG_CTRL3_C   BDU (block data update used to freeze readings on 2-byte access)
-	                        //   Int ouputs Open Drain, IF_INC bit for Auto-inc reg addr on multi byte access, BLE 0 for LSB then MSB
+	{0x18, {0x38}, 1},                          // LSM6DS3_REG_CTRL9_XL  Accel enable X,Y,Z (this is the reset default so is optional)
+    {0x10, {ODR_XL_1K66}, 1},                   // LSM6DS3_REG_CTRL1_XL  Accel 1.66 kHz sampling, 2G range, 400 Hz anti alias filter
+	{0x13, {0x00}, 1},                          // LSM6DS3_REG_CTRL4_C   Not sleeping, no Int enable, no temp data in fifo, I2C enabled
+	{0x16, {0x50}, 1},                          // LSM6DS3_REG_CTRL7_G   Gyro settings.  High perf mode, High pass filter 0.0324hz cutoff
+    {0x19, {0x38}, 1},                          // LSM6DS3_REG_CTRL10_C  Enable X,Y,Z Gyro (0x38)
+	{0x11, {FS_G_2000_DPS | ODR_G_1K66}, 1},    // LSM6DS3_REG_CTRL2_G   Gyro 1.66 kHz sampling, 2000 degPerSec
+    {0x12, {0x54}, 1},                          // LSM6DS3_REG_CTRL3_C   BDU (block data update used to freeze readings on 2-byte access)
+                                                //   Int ouputs Open Drain, IF_INC bit for Auto-inc reg addr on multi byte access, BLE 0 for LSB then MSB
     {0, {0}, 0xff},
 };
 
@@ -226,7 +231,6 @@ int lsm6ds3_i2c_read_temperature(int i2c_num, uint8_t i2c_addr, float *tempC)
  */
 accelVectorInGs_t lsm6ds3_i2c_readAccelVectorInGs(int i2c_num, uint8_t i2c_addr)
 {
-  double accelValue = 0.0;
   accelVectorInGs_t accelVector = { 0.0, 0.0, 0.0 };
   int16_t accelReading;
   uint8_t buf[8];
@@ -262,9 +266,7 @@ accelVectorInGs_t lsm6ds3_i2c_readAccelVectorInGs(int i2c_num, uint8_t i2c_addr)
  */
 gyroVector_t lsm6ds3_i2c_readGyroVectorInDegPerSec(int i2c_num, uint8_t i2c_addr)
 {
-  int16_t gyroReading;
   gyroVector_t gyroVector = { 0.0, 0.0, 0.0 };
-  double  rotationDegPerSec;
   uint8_t buf[8];
 
   i2c_lock();
@@ -273,16 +275,13 @@ gyroVector_t lsm6ds3_i2c_readGyroVectorInDegPerSec(int i2c_num, uint8_t i2c_addr
 
   // Get a rotational rate in degree per second that is in same direction as forward accel shows of tilt.
   // For a scale of 245 deg/sec max range we multiply bits by  245/32768
-  gyroReading = ((buf[1] << 8) & 0xff00) | buf[0];
-  rotationDegPerSec = (double)(gyroReading) * GYRO_DEG_PER_SEC_PER_BIT;
+  int16_t gyroReading = ((buf[1] << 8) & 0xff00) | buf[0];
   gyroVector.x = (double)(gyroReading) * ACCEL_PER_BIT_IN_G;
 
   gyroReading = ((buf[3] << 8) & 0xff00) | buf[2];
-  rotationDegPerSec = (double)(gyroReading) * GYRO_DEG_PER_SEC_PER_BIT;
   gyroVector.y = (double)(gyroReading) * ACCEL_PER_BIT_IN_G;
 
   gyroReading = ((buf[5] << 8) & 0xff00) | buf[4];
-  rotationDegPerSec = (double)(gyroReading) * GYRO_DEG_PER_SEC_PER_BIT;
   gyroVector.z = (double)(gyroReading) * ACCEL_PER_BIT_IN_G;
 
   return gyroVector;
@@ -310,17 +309,15 @@ gyroVector_t lsm6ds3_i2c_readGyroVectorInDegPerSec(int i2c_num, uint8_t i2c_addr
  */
 double lsm6ds3_i2c_readForwardAccelInGs(int i2c_num, uint8_t i2c_addr)
 {
-  double accelValue = 0.0;
-  int16_t accelReading;
   uint8_t buf[8];
 
   i2c_lock();
   i2c_readBytes((i2c_port_t) i2c_num, i2c_addr, (LSM6DS3_ACCEL_BASE+4), &buf[0], 2);  // Optimized to read just the 1 Z word
   i2c_unlock();
 
-  accelReading = ((buf[1] << 8) & 0xff00) | buf[0];
+  int16_t accelReading = ((buf[1] << 8) & 0xff00) | buf[0];
 
-  accelValue = (double)(accelReading) * ACCEL_PER_BIT_IN_G * (double)(-1.0);
+  double accelValue = (double)(accelReading) * ACCEL_PER_BIT_IN_G * (double)(-1.0);
 
   return accelValue;
 }
