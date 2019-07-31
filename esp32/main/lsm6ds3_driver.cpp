@@ -64,12 +64,12 @@ DRAM_ATTR static const i2c_cmd_table_t lsm6ds3_powerdown_cmds[]={
  */
 int lsm6ds3_i2c_init(int i2c_num, uint8_t i2cAddr)
 {
-    int cmd=0;
+    int cmd = 0;
     uint8_t buf[8];
     int retCode = 0;
 
     //Send all the commands to fully initialize the device
-	while (lsm6ds3_init_cmds[cmd].databytes!=0xff) {
+	while (lsm6ds3_init_cmds[cmd].databytes != 0xff) {
 		buf[0] = lsm6ds3_init_cmds[cmd].data[0];
 		retCode = i2c_writeBytes((i2c_port_t) i2c_num, i2cAddr, lsm6ds3_init_cmds[cmd].cmd, &buf[0], 1);
 		if (retCode) break;
