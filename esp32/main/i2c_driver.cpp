@@ -46,7 +46,6 @@ void i2c_unlock(void)
 int i2c_writeBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t *bufr, uint16_t numBytes)
 {
     int retCode = 0;
-    int i;
     i2c_cmd_handle_t cmd;
 
     if (bufr == 0) {
@@ -63,7 +62,7 @@ int i2c_writeBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uin
     }
 
     // Now write as many bytes as was requested
-    for (i=0 ; i < numBytes; i++) {
+    for (int i = 0; i < numBytes; i++) {
     	i2c_master_write_byte(cmd, bufr[i], ACK_CHECK_EN);
     }
     i2c_master_stop(cmd);
@@ -164,7 +163,8 @@ int i2c_writeBits(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
  *
  * @retval				Zero indicates no error.
  */
-int i2c_writeBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitNum, uint8_t data) {
+int i2c_writeBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitNum, uint8_t data)
+{
     uint8_t b;
     i2c_readByte(i2c_num, chipI2cAddr, regAddr, &b);
     b = (data != 0) ? (b | (1 << bitNum)) : (b & ~(1 << bitNum));
