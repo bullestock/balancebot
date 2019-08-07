@@ -18,7 +18,7 @@ Led::Led(int gpio)
     strand.rmtChannel = 1;
     strand.ledType = LED_WS2812B_V3;
     strand.brightLimit = 32;
-    strand.numPixels =  2;
+    strand.numPixels =  3;
     strand.pixels = nullptr;
     strand._stateVars = nullptr;
     strand.gpioNum = gpio;
@@ -32,9 +32,10 @@ Led::Led(int gpio)
 
 void Led::set_color(int r, int g, int b)
 {
-    strand.pixels[0] = pixelFromRGB(g, r, b);
+    strand.pixels[0] = pixelFromRGB(g/32, r/32, r/32);
+    strand.pixels[1] = pixelFromRGB(g, r, b);
     if (!right_color_fixed)
-        strand.pixels[1] = strand.pixels[0];
+        strand.pixels[2] = strand.pixels[1];
     digitalLeds_updatePixels(&strand);
 }
 
@@ -66,6 +67,6 @@ void Led::set_color(Colour c)
 void Led::set_color_right(int r, int g, int b)
 {
     right_color_fixed = true;
-    strand.pixels[1] = pixelFromRGB(g, r, b);
+    strand.pixels[2] = pixelFromRGB(g, r, b);
     digitalLeds_updatePixels(&strand);
 }
