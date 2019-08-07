@@ -285,6 +285,10 @@ def main(stdscr):
     else:
         address = sys.argv[1]
 
+    f1 = open('address.txt', 'w+')
+    f1.write(address)
+    f1.close()
+
     try:
         # Disconnect already-connected devices.
         # This is basically Linux black magic just to get the thing to work.
