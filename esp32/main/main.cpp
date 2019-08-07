@@ -138,6 +138,7 @@ void battery_cutoff()
 
 void battery_task(void*)
 {
+    static bool shutdown = false;
     float smoothed_battery_value = battery->read_voltage();
     while (1)
     {
@@ -153,7 +154,13 @@ void battery_task(void*)
             else
             {
                 disable_motors();
-                led->set_color_right(255, 0, 0);
+                if (!shutdown)
+                {
+                    led->set_color(0, 0, 0);
+                    led->set_color_right(255, 0, 0);
+                    shutdown = true;
+                    printf("SHUTDOWN: %f\n", smoothed_battery_value);
+                }
             }
         }
 
@@ -255,7 +262,6 @@ void main_loop(void* pvParameters)
                     else if (sin_pitch > target_angle + HIGH_PID_LIMIT)
                         motor_speed = 1.0;
                     else
-                        //!!
                         motor_speed = pid_compute(sin_pitch, target_angle,
                                                   &pid_settings_arr[ANGLE], &angle_pid_state,
                                                   SHOW_DEBUG());
