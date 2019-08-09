@@ -5,10 +5,6 @@ import time
 import bluetooth
 import sys
 import subprocess
-import curses
-from curses import wrapper
-
-stdscr = curses.initscr()
 
 # --------- User Settings ---------
 WEIGHT_SAMPLES = 5
@@ -33,20 +29,11 @@ BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
 
 
 class EventProcessor:
-    def __init__(self, stdscr):
+    def __init__(self):
         self.done = False
-        self.scr = stdscr
 
     def mass(self, event):
-        self.scr.clear()
-
-        self.scr.addstr(10, 10, ("%.3f" % event.topLeft))
-        self.scr.addstr(10, 20, ("%.3f" % event.topRight))
-        self.scr.addstr(12, 10, ("%.3f" % event.bottomLeft))
-        self.scr.addstr(12, 20, ("%.3f" % event.bottomRight))
-        self.scr.addstr(16, 15, ("TOTAL %.3f" % event.totalWeight))
-
-        if event.totalWeight > 0:
+        if event.totalWeight > 5:
             left = (event.topLeft+event.bottomLeft)
             right = (event.topRight+event.bottomRight)
             top = (event.topLeft+event.topRight)
@@ -55,15 +42,9 @@ class EventProcessor:
             lr = SCALE*(left-right)/event.totalWeight
             tb = SCALE*(top-bot)/event.totalWeight
 
-            self.scr.addstr(11, 0, ("L %.3f" % left))
-            self.scr.addstr(11, 30, ("R %.3f" % right))
-            self.scr.addstr(8, 15, ("T %.3f" % top))
-            self.scr.addstr(14, 15, ("B %.3f" % bot))
-            
-            self.scr.addstr(18, 15, ("LR %.3f" % lr))
-            self.scr.addstr(20, 10, ("TB %.3f" % tb))
-
-        self.scr.refresh()
+            sys.stdout.write("\rT %.3f    LR %.3f TB %.3f" % (event.totalWeight, lr, tb))
+        else:
+            sys.stdout.write("\r-                            \r")
 
 
 class BoardEvent:
@@ -275,20 +256,21 @@ class Wiiboard:
         time.sleep(millis / 1000.0)
 
 
-def main(stdscr):
-    processor = EventProcessor(stdscr)
+def main():
+    processor = EventProcessor()
 
     board = Wiiboard(processor)
-    if len(sys.argv) == 1:
-        print "Discovering board..."
-        address = board.discover()
-    else:
-        address = sys.argv[1]
+    # if len(sys.argv) == 1:
+    #     print "Discovering board..."
+    #     address = board.discover()
+    # else:
+    #     address = sys.argv[1]
 
-    f1 = open('address.txt', 'w+')
-    f1.write(address)
-    f1.close()
-
+    # f1 = open('address.txt', 'w+')
+    # f1.write(address)
+    # f1.close()
+    address = '00:24:44:58:F1:D8'
+    
     try:
         # Disconnect already-connected devices.
         # This is basically Linux black magic just to get the thing to work.
@@ -307,4 +289,4 @@ def main(stdscr):
     board.receive()
 
 if __name__ == "__main__":
-    wrapper(main)
+    main()
