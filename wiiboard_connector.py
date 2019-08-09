@@ -1,4 +1,5 @@
 import websocket
+import os
 
 from websocket._abnf import ABNF
 
@@ -19,7 +20,6 @@ def on_message(ws, message):
         tilt_y = ba[1] + 256*ba[2]
         print("Tilt: %f/%f" % (tilt_x/32768.0, tilt_y/32768.0))
 
-
 def on_error(ws, error):
     print(error)
 
@@ -30,9 +30,11 @@ def on_open(ws):
     print("WS open")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
+        #print("Connecting to Wiiboard")
         for i in range(3):
             time.sleep(5)
-            ba = bytearray([0, 0, 5])
+            # '0', <turn>, <speed>
+            ba = bytearray([0, 0, 256-2])
             print("Steer")
             ws.sock.send_binary(ba)
             time.sleep(5)
@@ -41,7 +43,10 @@ def on_open(ws):
     thread.start_new_thread(run, ())
 
 if __name__ == "__main__":
+    print("Connecting to ESPWay WiFi")
+    os.system('nmcli connection up 7395620e-a312-4194-af3e-a39f7e038c1e')
     websocket.enableTrace(True)
+    print("Connecting to ESPWay websocket")
     ws = websocket.WebSocketApp("ws://10.0.0.1/",
                               on_message = on_message,
                               on_error = on_error,
