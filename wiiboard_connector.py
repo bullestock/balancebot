@@ -3,6 +3,12 @@ import os
 import bluetooth
 import sys
 import threading
+import Adafruit_GPIO.SPI as SPI
+import Adafruit_SSD1306
+
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 
 from websocket._abnf import ABNF
 
@@ -33,7 +39,39 @@ TOP_LEFT = 2
 BOTTOM_LEFT = 3
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
 
+# Raspberry Pi pin configuration:
+RST = None     # on the PiOLED this pin isnt used
 
+class Display:
+
+    def __init__(self):
+        # 128x32 display with hardware I2C:
+        self.disp = Adafruit_SSD1306.SSD1306_128_32(rst=RST)
+        # Initialize library.
+        self.disp.begin()
+        self.clear()
+        # Load default font.
+        self.font = ImageFont.load_default()
+        self.width = self.disp.width
+        self.height = self.disp.height
+        self.image = Image.new('1', (self.width, self.height))
+        self.padding = -2
+        self.lineheight = 8
+        self.top = self.padding
+        # Get drawing object to draw on image.
+        self.draw = ImageDraw.Draw(self.image)
+
+    def clear(self):
+        # Clear display.
+        self.disp.clear()
+        self.disp.display()
+        
+    def show(self, line, text):
+        self.draw.rectangle((0, line*self.lineheight, self.width, (line + 1)*self.lineheight), outline=0, fill=0)
+        self.draw.text((0, self.padding + line*self.lineheight), text, font=self.font, fill=255)
+        self.disp.image(self.image)
+        self.disp.display()
+        
 class EventProcessor:
     def __init__(self):
         self.done = False
@@ -246,8 +284,8 @@ class Wiiboard:
 
         self.controlsocket.send(senddata)
 
-    #Turns the power button LED on if light is True, off if False
-    #The board must be connected in order to set the light
+    # Turns the power button LED on if light is True, off if False
+    # The board must be connected in order to set the light
     def setLight(self, light):
         if light:
             val = "10"
@@ -299,7 +337,7 @@ def on_open(ws):
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
                 lr = s[0]
-                turn = int(abs(lr)/2.0*128) / 8
+                turn = int(abs(lr)/2.0*128) / 4
                 if turn >= 128:
                     turn = 127
                 if lr < 0 and turn > 0:
@@ -319,7 +357,7 @@ def on_open(ws):
 if __name__ == "__main__":
     processor = EventProcessor()
 
-    board = Wiiboard(processor)
+    display = Display()
 
     address = '00:24:44:58:F1:D8'
     
@@ -331,9 +369,22 @@ if __name__ == "__main__":
     except:
         pass
 
-    print "Connecting to Wiiboard..."
-    board.connect(address)  # The wii board must be in sync mode at this time
+    display.show(0, "Wiiboard: Connecting")
+
+    connected = False
+    while not connected:
+        try:
+            print "Connecting to Wiiboard..."
+            board = Wiiboard(processor)
+            board.connect(address)  # The wii board must be in sync mode at this time
+            connected = True
+        except bluetooth.btcommon.BluetoothError:
+            print "Failed"
+            board.disconnect()
+            time.sleep(1)
+            
     print "Connected to Wiiboard"
+    display.show(0, "Wiiboard: Connected")
     board.wait(200)
     # Flash the LED so we know we can step on.
     board.setLight(False)
@@ -344,7 +395,21 @@ if __name__ == "__main__":
     wii_thread.start()
 
     print("Connecting to ESPWay WiFi")
-    os.system('nmcli connection up 7395620e-a312-4194-af3e-a39f7e038c1e')
+    display.show(1, "ESPWay: Connecting")
+
+    connected = False
+    while not connected:
+        os.system('sudo nmcli dev wifi list')
+        code = os.system('sudo nmcli device wifi connect ESPway')
+        if code == 0:
+            connected = True
+        elif code == 10:
+            display.show(1, "ESPWay: No network")
+        else:
+            display.show(1, "ESPWay: Error")
+
+    display.show(1, "ESPWay: Connected")
+            
     #websocket.enableTrace(True)
     print("Connecting to ESPWay websocket")
     ws = websocket.WebSocketApp("ws://10.0.0.1/",
@@ -352,5 +417,6 @@ if __name__ == "__main__":
                                 on_error = on_error,
                                 on_close = on_close)
     ws.processor = processor
+    ws.display = display
     ws.on_open = on_open
     ws.run_forever()
