@@ -4,12 +4,8 @@ import bluetooth
 import sys
 import subprocess
 import threading
-import Adafruit_GPIO.SPI as SPI
-import Adafruit_SSD1306
 
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+from display import Display
 
 from websocket._abnf import ABNF
 
@@ -40,39 +36,6 @@ TOP_LEFT = 2
 BOTTOM_LEFT = 3
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
 
-# Raspberry Pi pin configuration:
-RST = None     # on the PiOLED this pin isnt used
-
-class Display:
-
-    def __init__(self):
-        # 128x32 display with hardware I2C:
-        self.disp = Adafruit_SSD1306.SSD1306_128_32(rst=RST)
-        # Initialize library.
-        self.disp.begin()
-        self.clear()
-        # Load default font.
-        self.font = ImageFont.load_default()
-        self.width = self.disp.width
-        self.height = self.disp.height
-        self.image = Image.new('1', (self.width, self.height))
-        self.padding = -2
-        self.lineheight = 8
-        self.top = self.padding
-        # Get drawing object to draw on image.
-        self.draw = ImageDraw.Draw(self.image)
-
-    def clear(self):
-        # Clear display.
-        self.disp.clear()
-        self.disp.display()
-        
-    def show(self, line, text):
-        self.draw.rectangle((0, line*self.lineheight, self.width, (line + 1)*self.lineheight), outline=0, fill=0)
-        self.draw.text((0, self.padding + line*self.lineheight), text, font=self.font, fill=255)
-        self.disp.image(self.image)
-        self.disp.display()
-        
 class EventProcessor:
     def __init__(self):
         self.done = False
@@ -313,11 +276,10 @@ class Wiiboard:
 
 def on_message(ws, message):
     ba = bytearray(message)
-    print("WS message: %s" % ba[0])
+    #print("WS message: %s" % ba[0])
     if ba[0] == 3:
-        ws.bat = (ba[1] + 256*ba[2])/1000.0
-        print("Battery: %f" % bat)
-        #self.display.show(3, "Bat %2.1f" % ws.bat)
+        bat = (ba[1] + 256*ba[2])/1000.0
+        ws.display.show(3, "Battery %2.1f" % bat)
     elif ba[0] == 2:
         tilt_x = ba[3] + 256*ba[4]
         tilt_y = ba[1] + 256*ba[2]
@@ -332,8 +294,7 @@ def on_close(ws):
 
 def on_open(ws):
     print("WS open")
-    self.display.show(2, "ESP: WebSocket")
-    print("disp'ed")
+    ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
         while True:
@@ -363,7 +324,7 @@ if __name__ == "__main__":
     processor = EventProcessor()
 
     display = Display()
-
+    
     # Show wired IP on line 0
     ip = subprocess.Popen("ip a show eth0|grep 'inet '|awk '{print $2}'| cut -d/ -f1", shell=True, stdout=subprocess.PIPE).communicate()[0]
     display.show(0, "IP: %s" % ip)
