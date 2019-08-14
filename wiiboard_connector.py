@@ -2,6 +2,7 @@ import websocket
 import os
 import bluetooth
 import sys
+import subprocess
 import threading
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
@@ -312,10 +313,11 @@ class Wiiboard:
 
 def on_message(ws, message):
     ba = bytearray(message)
-    #print("WS message: %s" % ba[0])
+    print("WS message: %s" % ba[0])
     if ba[0] == 3:
-        ws.bat = ba[1] + 256*ba[2]
-        #print("Battery: %f" % (bat/1000.0))
+        ws.bat = (ba[1] + 256*ba[2])/1000.0
+        print("Battery: %f" % bat)
+        #self.display.show(3, "Bat %2.1f" % ws.bat)
     elif ba[0] == 2:
         tilt_x = ba[3] + 256*ba[4]
         tilt_y = ba[1] + 256*ba[2]
@@ -326,9 +328,12 @@ def on_error(ws, error):
 
 def on_close(ws):
     print("WS closed")
+    self.display.show(2, "ESP: WS close")
 
 def on_open(ws):
     print("WS open")
+    self.display.show(2, "ESP: WebSocket")
+    print("disp'ed")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
         while True:
@@ -359,6 +364,10 @@ if __name__ == "__main__":
 
     display = Display()
 
+    # Show wired IP on line 0
+    ip = subprocess.Popen("ip a show eth0|grep 'inet '|awk '{print $2}'| cut -d/ -f1", shell=True, stdout=subprocess.PIPE).communicate()[0]
+    display.show(0, "IP: %s" % ip)
+    
     address = '00:24:44:58:F1:D8'
     
     try:
@@ -369,7 +378,7 @@ if __name__ == "__main__":
     except:
         pass
 
-    display.show(0, "Wiiboard: Connecting")
+    display.show(1, "Wiiboard: Connecting")
 
     connected = False
     while not connected:
@@ -384,7 +393,7 @@ if __name__ == "__main__":
             time.sleep(1)
             
     print "Connected to Wiiboard"
-    display.show(0, "Wiiboard: Connected")
+    display.show(1, "Wiiboard: Connected")
     board.wait(200)
     # Flash the LED so we know we can step on.
     board.setLight(False)
@@ -395,7 +404,7 @@ if __name__ == "__main__":
     wii_thread.start()
 
     print("Connecting to ESPWay WiFi")
-    display.show(1, "ESPWay: Connecting")
+    display.show(2, "ESP: Connecting")
 
     connected = False
     while not connected:
@@ -403,12 +412,12 @@ if __name__ == "__main__":
         code = os.system('sudo nmcli device wifi connect ESPway')
         if code == 0:
             connected = True
-        elif code == 10:
-            display.show(1, "ESPWay: No network")
+        elif code == 2560:
+            display.show(2, "ESP: No network")
         else:
-            display.show(1, "ESPWay: Error")
+            display.show(2, "ESP: Error %d" % code)
 
-    display.show(1, "ESPWay: Connected")
+    display.show(2, "ESP: Connected")
             
     #websocket.enableTrace(True)
     print("Connecting to ESPWay websocket")
