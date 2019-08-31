@@ -2,7 +2,10 @@ import websocket
 import os
 import bluetooth
 import sys
+import subprocess
 import threading
+
+from display import Display
 
 from websocket._abnf import ABNF
 
@@ -32,7 +35,6 @@ BOTTOM_RIGHT = 1
 TOP_LEFT = 2
 BOTTOM_LEFT = 3
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
-
 
 class EventProcessor:
     def __init__(self):
@@ -246,8 +248,8 @@ class Wiiboard:
 
         self.controlsocket.send(senddata)
 
-    #Turns the power button LED on if light is True, off if False
-    #The board must be connected in order to set the light
+    # Turns the power button LED on if light is True, off if False
+    # The board must be connected in order to set the light
     def setLight(self, light):
         if light:
             val = "10"
@@ -276,8 +278,8 @@ def on_message(ws, message):
     ba = bytearray(message)
     #print("WS message: %s" % ba[0])
     if ba[0] == 3:
-        ws.bat = ba[1] + 256*ba[2]
-        #print("Battery: %f" % (bat/1000.0))
+        bat = (ba[1] + 256*ba[2])/1000.0
+        ws.display.show(3, "Battery %2.1f" % bat)
     elif ba[0] == 2:
         tilt_x = ba[3] + 256*ba[4]
         tilt_y = ba[1] + 256*ba[2]
@@ -288,9 +290,11 @@ def on_error(ws, error):
 
 def on_close(ws):
     print("WS closed")
+    self.display.show(2, "ESP: WS close")
 
 def on_open(ws):
     print("WS open")
+    ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
         while True:
@@ -299,7 +303,7 @@ def on_open(ws):
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
                 lr = s[0]
-                turn = int(abs(lr)/2.0*128) / 8
+                turn = int(abs(lr)/2.0*128) / 4
                 if turn >= 128:
                     turn = 127
                 if lr < 0 and turn > 0:
@@ -319,8 +323,12 @@ def on_open(ws):
 if __name__ == "__main__":
     processor = EventProcessor()
 
-    board = Wiiboard(processor)
-
+    display = Display()
+    
+    # Show wired IP on line 0
+    ip = subprocess.Popen("ip a show eth0|grep 'inet '|awk '{print $2}'| cut -d/ -f1", shell=True, stdout=subprocess.PIPE).communicate()[0]
+    display.show(0, "IP: %s" % ip)
+    
     address = '00:24:44:58:F1:D8'
     
     try:
@@ -331,9 +339,22 @@ if __name__ == "__main__":
     except:
         pass
 
-    print "Connecting to Wiiboard..."
-    board.connect(address)  # The wii board must be in sync mode at this time
+    display.show(1, "Wiiboard: Connecting")
+
+    connected = False
+    while not connected:
+        try:
+            print "Connecting to Wiiboard..."
+            board = Wiiboard(processor)
+            board.connect(address)  # The wii board must be in sync mode at this time
+            connected = True
+        except bluetooth.btcommon.BluetoothError:
+            print "Failed"
+            board.disconnect()
+            time.sleep(1)
+            
     print "Connected to Wiiboard"
+    display.show(1, "Wiiboard: Connected")
     board.wait(200)
     # Flash the LED so we know we can step on.
     board.setLight(False)
@@ -344,7 +365,21 @@ if __name__ == "__main__":
     wii_thread.start()
 
     print("Connecting to ESPWay WiFi")
-    os.system('nmcli connection up 7395620e-a312-4194-af3e-a39f7e038c1e')
+    display.show(2, "ESP: Connecting")
+
+    connected = False
+    while not connected:
+        os.system('sudo nmcli dev wifi list')
+        code = os.system('sudo nmcli device wifi connect ESPway')
+        if code == 0:
+            connected = True
+        elif code == 2560:
+            display.show(2, "ESP: No network")
+        else:
+            display.show(2, "ESP: Error %d" % code)
+
+    display.show(2, "ESP: Connected")
+            
     #websocket.enableTrace(True)
     print("Connecting to ESPWay websocket")
     ws = websocket.WebSocketApp("ws://10.0.0.1/",
@@ -352,5 +387,6 @@ if __name__ == "__main__":
                                 on_error = on_error,
                                 on_close = on_close)
     ws.processor = processor
+    ws.display = display
     ws.on_open = on_open
     ws.run_forever()
