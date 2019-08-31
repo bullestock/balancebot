@@ -1,0 +1,16 @@
+[Unit]
+Description=Wiiboard Balancebot Connector
+
+[Service]
+ExecStart=/usr/bin/python /home/pi/balancebot/wiiboard_connector.py
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=wb-connector
+WorkingDirectory=/home/pi/balancebot
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+
