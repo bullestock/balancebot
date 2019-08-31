@@ -302,14 +302,16 @@ def on_open(ws):
             if s:
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
+                STEERING_SCALE_FACTOR = 4
+                SPEED_SCALE_FACTOR = 8
                 lr = s[0]
-                turn = int(abs(lr)/2.0*128) / 4
+                turn = int(abs(lr)/2.0*128) / STEERING_SCALE_FACTOR
                 if turn >= 128:
                     turn = 127
                 if lr < 0 and turn > 0:
                     turn = 256-turn
                 tb = s[1]
-                speed = int(abs(tb)/2.0*128) / 8
+                speed = int(abs(tb)/2.0*128) / SPEED_SCALE_FACTOR
                 if speed >= 128:
                     speed = 127
                 if tb < 0 and speed > 0:
