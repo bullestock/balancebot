@@ -4,6 +4,7 @@ import bluetooth
 import sys
 import subprocess
 import threading
+from datetime import datetime
 
 from display import Display
 
@@ -297,6 +298,7 @@ def on_open(ws):
     ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
+        lastpacket = datetime.now()
         while True:
             s = ws.processor.get_stering()
             if s:
@@ -319,6 +321,14 @@ def on_open(ws):
                 print("Steer %d, %d" % (turn, speed))
                 ba = bytearray([0, turn, speed])
                 ws.sock.send_binary(ba)
+                lastpacket = datetime.now()
+            else:
+                now = datetime.now()
+                if (now - lastpacket).total_seconds() > 3:
+                    print("Reset steering")
+                    ba = bytearray([0, 0, 0])
+                    ws.sock.send_binary(ba)
+                    lastpacket = now
             time.sleep(0.1)
     thread.start_new_thread(run, ())
 
