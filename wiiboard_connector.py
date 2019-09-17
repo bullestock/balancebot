@@ -59,7 +59,7 @@ class EventProcessor:
             self.steering = None
         self.lock.release()
 
-    def get_stering(self):
+    def get_steering(self):
         self.lock.acquire()
         s = self.steering
         self.lock.release()
@@ -298,7 +298,7 @@ def on_open(ws):
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
         while True:
-            s = ws.processor.get_stering()
+            s = ws.processor.get_steering()
             if s:
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
