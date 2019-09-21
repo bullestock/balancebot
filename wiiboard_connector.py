@@ -4,7 +4,6 @@ import bluetooth
 import sys
 import subprocess
 import threading
-from datetime import datetime
 
 from display import Display
 
@@ -60,7 +59,7 @@ class EventProcessor:
             self.steering = None
         self.lock.release()
 
-    def get_stering(self):
+    def get_steering(self):
         self.lock.acquire()
         s = self.steering
         self.lock.release()
@@ -298,9 +297,9 @@ def on_open(ws):
     ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
-        lastpacket = datetime.now()
+        last_steering = time.time()
         while True:
-            s = ws.processor.get_stering()
+            s = ws.processor.get_steering()
             if s:
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
@@ -321,14 +320,14 @@ def on_open(ws):
                 print("Steer %d, %d" % (turn, speed))
                 ba = bytearray([0, turn, speed])
                 ws.sock.send_binary(ba)
-                lastpacket = datetime.now()
+                last_steering = time.time()
             else:
-                now = datetime.now()
-                if (now - lastpacket).total_seconds() > 3:
-                    print("Reset steering")
+                since_last_steering = time.time() - last_steering
+                if since_last_steering > 1:
                     ba = bytearray([0, 0, 0])
                     ws.sock.send_binary(ba)
-                    lastpacket = now
+                    print("Reset steering")
+                    last_steering = time.time()
             time.sleep(0.1)
     thread.start_new_thread(run, ())
 
