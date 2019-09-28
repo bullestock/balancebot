@@ -35,6 +35,7 @@ BOTTOM_RIGHT = 1
 TOP_LEFT = 2
 BOTTOM_LEFT = 3
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
+WIFI_PASS = "verysecret"
 
 class EventProcessor:
     def __init__(self):
@@ -326,7 +327,6 @@ def on_open(ws):
                 if since_last_steering > 1:
                     ba = bytearray([0, 0, 0])
                     ws.sock.send_binary(ba)
-                    print("Reset steering")
                     last_steering = time.time()
             time.sleep(0.1)
     thread.start_new_thread(run, ())
@@ -381,7 +381,7 @@ if __name__ == "__main__":
     connected = False
     while not connected:
         os.system('sudo nmcli dev wifi list')
-        code = os.system('sudo nmcli device wifi connect ESPway')
+        code = os.system('sudo nmcli device wifi connect ESPway password %s' % WIFI_PASS)
         if code == 0:
             connected = True
         elif code == 2560:
