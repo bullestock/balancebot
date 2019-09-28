@@ -6,7 +6,7 @@ import subprocess
 import threading
 
 from display import Display
-
+from secrets import WIFI_PASS
 from websocket._abnf import ABNF
 
 try:
@@ -35,7 +35,6 @@ BOTTOM_RIGHT = 1
 TOP_LEFT = 2
 BOTTOM_LEFT = 3
 BLUETOOTH_NAME = "Nintendo RVL-WBC-01"
-WIFI_PASS = "verysecret"
 
 class EventProcessor:
     def __init__(self):
@@ -305,7 +304,7 @@ def on_open(ws):
                 # '0', <turn>, <speed>
                 # Range of lr/tb is approx +-2
                 STEERING_SCALE_FACTOR = 4
-                SPEED_SCALE_FACTOR = 8
+                SPEED_SCALE_FACTOR = 6
                 lr = s[0]
                 turn = int(abs(lr)/2.0*128) / STEERING_SCALE_FACTOR
                 if turn >= 128:
@@ -324,7 +323,8 @@ def on_open(ws):
                 last_steering = time.time()
             else:
                 since_last_steering = time.time() - last_steering
-                if since_last_steering > 1:
+                if since_last_steering > 0.5:
+                    # Reset steering
                     ba = bytearray([0, 0, 0])
                     ws.sock.send_binary(ba)
                     last_steering = time.time()
