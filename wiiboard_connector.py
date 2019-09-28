@@ -297,6 +297,7 @@ def on_open(ws):
     ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
+        last_steering = time.time()
         while True:
             s = ws.processor.get_steering()
             if s:
@@ -319,6 +320,14 @@ def on_open(ws):
                 print("Steer %d, %d" % (turn, speed))
                 ba = bytearray([0, turn, speed])
                 ws.sock.send_binary(ba)
+                last_steering = time.time()
+            else:
+                since_last_steering = time.time() - last_steering
+                if since_last_steering > 1:
+                    ba = bytearray([0, 0, 0])
+                    ws.sock.send_binary(ba)
+                    print("Reset steering")
+                    last_steering = time.time()
             time.sleep(0.1)
     thread.start_new_thread(run, ())
 
