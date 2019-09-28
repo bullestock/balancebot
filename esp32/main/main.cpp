@@ -16,6 +16,7 @@
 #include "sdkconfig.h"
 #include "esp_event.h"
 #include "esp_event_loop.h"
+#include "esp_sleep.h"
 #include "nvs_flash.h"
 
 #include "websocket_server.h"
@@ -29,6 +30,7 @@
 #include "led.h"
 #include "locks.h"
 #include "motor.h"
+#include "secrets.h"
 
 #define LED_GPIO 16
 #define LED_PIN 2 // internal
@@ -383,7 +385,8 @@ static void wifi_setup()
     wifi_config_t ap_config = {};
     strcpy((char*) ap_config.ap.ssid, WIFI_SSID);
     ap_config.ap.ssid_len = strlen(WIFI_SSID);
-    ap_config.ap.authmode = WIFI_AUTH_OPEN;
+    strcpy((char*) ap_config.ap.password, WIFI_PASS);
+    ap_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
     ap_config.ap.max_connection = 1;
     ap_config.ap.beacon_interval = 100;
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));

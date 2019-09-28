@@ -99,12 +99,19 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
     switch (msgtype)
     {
     case STEERING:
-        // Parameters: velocity (int8_t), turn rate (int8_t)
-        if (data_len != 2)
-            break;
-        signed_data = (int8_t*) payload;
-        set_steering(SPEED_CONTROL_FACTOR * (signed_data[1]/128.0),
-                     STEERING_FACTOR * (signed_data[0]/128.0));
+        {
+            // Parameters: velocity (int8_t), turn rate (int8_t)
+            if (data_len != 2)
+            {
+                printf("bad steering packet: size %d\n", data_len);
+                break;
+            }
+            signed_data = (int8_t*) payload;
+            const auto speed = SPEED_CONTROL_FACTOR * (signed_data[1]/128.0);
+            const auto turn = STEERING_FACTOR * (signed_data[0]/128.0);
+            printf("steering: %f, %f\n", speed, turn);
+            set_steering(speed, turn);
+        }
         break;
 
     case REQ_ORIENTATION:

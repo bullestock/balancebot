@@ -23,12 +23,12 @@
 
 // Angle PID == the PID controller which regulates motor output signal to reach
 // the target angle
-#define ANGLE_KP 1.0
-#define ANGLE_KI 1.0
-#define ANGLE_KD 0.1
+#define ANGLE_KP 8
+#define ANGLE_KI 0.002533
+#define ANGLE_KD 0.051880
 // Velocity PID == the PID controller which regulates target angle to reach
 // the target velocity
-#define VEL_KP 2.0
+#define VEL_KP 1
 #define VEL_KI 0.5
 #define VEL_KD 0.002
 
