@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1220mm"
+   height="610mm"
+   viewBox="-1 -81 1220 610"
+   version="1.1"
+   id="svg6"
+   sodipodi:docname="batterymodule.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <metadata
+     id="metadata12">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>OpenSCAD Model</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs10" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1600"
+     inkscape:window-height="832"
+     id="namedview8"
+     showgrid="false"
+     inkscape:document-units="mm"
+     inkscape:zoom="3.3247525"
+     inkscape:cx="1215.8676"
+     inkscape:cy="229.92126"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg6" />
+  <title
+     id="title2">OpenSCAD Model</title>
+  <path
+     d="m 161.75051,488.3675 h 5.977 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 6 v -9 h 3 v -7.07 h -3 v -6.93 h 3 v -7.07 h -3 v -9 h -6 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -6 v 9 h -3 v 7.07 h 3 v 6.93 h -3 v 7.07 h 3 v 9 h 6 v 3 h 6.118 z"
+     id="path832"
+     style="fill:none;stroke:#000000;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
+  <path
+     d="m 15.0826,488.3675 h 5.9776 v 3 h 6.1177 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1177 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9777 v 3 h 6.1176 v -3 h 5.9777 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 6 v -9 h 3 v -7.07 h -3 v -6.93 h 3 v -7.07 h -3 v -9 h -6 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.9777 v -3 h -6.1176 v 3 h -5.9776 v -3 h -6.1177 v 3 h -5.9776 v -3 h -6.1176 v 3 h -5.9776 v -3 H 57.346 v 3 h -5.9777 v -3 h -6.1176 v 3 h -5.9776 v -3 h -6.1176 v 3 h -5.9776 v -3 h -6.1177 v 3 h -5.9776 v -3 H 8.965 v 3 h -6 v 9 h -3.0000037 v 7.07 H 2.965 v 6.93 h -3.0000037 v 7.07 H 2.965 v 9 h 6 v 3 h 6.1176 z"
+     id="path830"
+     style="fill:none;stroke:#000000;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
+  <path
+     d="m 304.84085,525.035 h 6.93 v 3 h 7.07 v -3 h 6.93 v 3 h 9.07 v -9 h 3 v -17.07 h -3 v -9 h -9.07 v 3 h -6.93 v -3 h -7.07 v 3 h -6.93 v -3 h -9.07 v 9 h -3 v 17.07 h 3 v 9 h 9.07 z"
+     id="path828"
+     style="fill:none;stroke:#000000;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
+  <g
+     id="g842"
+     transform="translate(-0.35062746,0.32494659)">
+    <path
+       id="path826"
+       transform="matrix(0.26458333,0,0,0.26458333,-1,-81)"
+       d="m 1133.8574,2002.8848 v 34.0156 h 11.3399 v -34.0156 z m 45.6192,0 v 11.3379 h 26.1933 v -11.3379 z m 52.914,0 v 11.3379 h 26.1914 v -11.3379 z m 60.4727,0 v 34.0156 h 11.3379 v -34.0156 z m -159.0059,98.5332 v 34.0156 h 11.3399 v -34.0156 z m 159.0059,0 v 34.0156 h 11.3379 v -34.0156 z m -113.3867,22.6758 v 11.3398 h 26.1933 v -11.3398 z m 52.914,0 v 11.3398 h 26.1914 v -11.3398 z"
+       style="fill:none;stroke:#000000;stroke-width:3.77952766;stroke-opacity:1"
+       inkscape:connector-curvature="0" />
+  </g>
+  <path
+     d="m 155.70251,525.035 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.977 v 3 h 6.118 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 9.07 v -9.07 h -3 v -16.93 h 3 v -9.07 h -9.07 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.118 v 3 h -5.977 v -3 h -6.118 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -9.07 v 9.07 h 3 v 16.93 h -3 v 9.07 h 9.07 z"
+     id="path824"
+     style="fill:none;stroke:#000000;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
+  <path
+     d="m 9.035,525.035 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1177 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1177 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1176 v -3 h 5.9776 v 3 h 6.1177 v -3 h 5.9776 v 3 h 6.1177 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 6.117 v -3 h 5.978 v 3 h 9.07 v -9.07 h -3 v -16.93 h 3 v -9.07 h -9.07 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.117 v 3 h -5.978 v -3 h -6.1177 v 3 h -5.9776 v -3 H 87.584 v 3 h -5.9776 v -3 h -6.1176 v 3 h -5.9776 v -3 h -6.1176 v 3 H 57.416 v -3 h -6.1177 v 3 h -5.9776 v -3 h -6.1176 v 3 h -5.9776 v -3 h -6.1176 v 3 h -5.9777 v -3 h -6.1176 v 3 H 9.035 v -3 h -9.0700037 v 9.07 H 2.965 v 16.93 h -3.0000037 v 9.07 H 9.035 Z"
+     id="path4"
+     style="fill:none;stroke:#000000;stroke-opacity:1"
+     inkscape:connector-curvature="0" />
+  <rect
+     style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.10093579;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect834"
+     width="55"
+     height="45"
+     x="293.6842"
+     y="444.28998" />
+</svg>
