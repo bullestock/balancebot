@@ -42,9 +42,9 @@
      id="namedview8"
      showgrid="false"
      inkscape:document-units="mm"
-     inkscape:zoom="3.3247525"
-     inkscape:cx="1215.8676"
-     inkscape:cy="229.92126"
+     inkscape:zoom="0.78480427"
+     inkscape:cx="661.79465"
+     inkscape:cy="161.05604"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -93,4 +93,10 @@
      height="45"
      x="293.6842"
      y="444.28998" />
+  <path
+     style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.13203382;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="m 307.30575,509.25002 3,-2.75002 h 13 l 2e-4,8 h -13.0002 l -3,-2.74998 z"
+     id="rect839"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccccccc" />
 </svg>
