@@ -11,7 +11,7 @@
 // The IMU axis pointing to the forward direction of the robot
 #define IMU_FORWARD_AXIS        IMU_Z_AXIS
 // If the positive axis specified above points backward, set this to true
-#define IMU_INVERT_FORWARD_AXIS false
+#define IMU_INVERT_FORWARD_AXIS true
 #define IMU_INVERT_SIDE_AXIS    true
 // The IMU axis pointing horizontally to the "side" of the robot when it is standing
 #define IMU_SIDE_AXIS           IMU_X_AXIS
