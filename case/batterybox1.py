@@ -34,7 +34,7 @@ def ridge():
     return cube([8, 5, boxh-3])
 
 def lidsupport():
-    return cube([3, 3, boxh-3])
+    return cube([2, 2, boxh-3])
 
 def handle():
     return rotate_extrude(angle = -180)(translate([13, 0, 0])(circle(r = 4)))
@@ -45,8 +45,8 @@ def assembly():
     r3 = translate([-boxw/2, -(5+20), 2.9])(cube([boxw, 5, 8]))
     a = boxbody() + (boxend() - plugcutout()) + r1 + r2 + r3 + translate([0, -boxd, boxh/2])(handle())
     for i in range(0, 7):
-        a = a + translate([-boxw/2 + 2.9, -3 - i*22.2, 0])(lidsupport())
-        a = a + translate([boxw/2 - 3 - 2.9, -3 - i*22.2, 0])(lidsupport())
+        a = a + translate([-boxw/2 + 1.9, -3 - i*22.2, 0])(lidsupport())
+        a = a + translate([boxw/2 - 2 - 1.9, -3 - i*22.2, 0])(lidsupport())
     return a + translate([0, -boxd+3, 0])(boxend())
 
 if __name__ == '__main__':
