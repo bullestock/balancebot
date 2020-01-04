@@ -47,7 +47,7 @@ def assembly():
     for i in range(0, 7):
         a = a + translate([-boxw/2 + 1.9, -3 - i*22.2, 0])(lidsupport())
         a = a + translate([boxw/2 - 2 - 1.9, -3 - i*22.2, 0])(lidsupport())
-    return a + translate([0, -boxd+3, 0])(boxend())
+    return a + translate([-1, -boxd+2, 0])(lidsupport())
 
 if __name__ == '__main__':
     a = assembly()    
