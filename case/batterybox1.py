@@ -21,7 +21,7 @@ plugh = 30
 SEGMENTS = 48
 
 def plugcutout():
-    p = polygon(points = [ [0, 0], [0, 9], [14, 9], [17, 5.5], [17, 3.5], [14, 0] ])
+    p = polygon(points = [ [0, 3.5], [3, 0], [17, 0], [17, 9], [3, 9], [0, 5.5] ])
     return translate([-17/2, 3+1, boxh/2 - 9/2])(rotate([90, 0, 0])(linear_extrude(height = 3+2)(p)))
 
 def boxend():
