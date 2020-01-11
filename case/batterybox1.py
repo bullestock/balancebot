@@ -9,8 +9,6 @@ from solid.utils import *
 pch = 57.5
 pcr = 10
 
-th = 15
-
 boxh = 35
 boxw = 45 - 0.5
 boxd = 142
@@ -25,7 +23,8 @@ def plugcutout():
     return translate([-17/2, 3+1, boxh/2 - 9/2])(rotate([90, 0, 0])(linear_extrude(height = 3+2)(p)))
 
 def boxend():
-    return translate([-boxw/2, 0, 0])(cube([boxw, 3, boxh]))
+    th = 3
+    return translate([-boxw/2, -th, 0])(cube([boxw, th, boxh]))
 
 def boxbody():
     return translate([-boxw/2, -boxd, 0])(cube([boxw, boxd, boxh]) - translate([3, 3, 3])(cube([boxw - 2*3, boxd, boxh])))
