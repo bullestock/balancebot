@@ -132,6 +132,7 @@ int led_test(int argc, char** argv)
     printf("Running LED test (%d)\n", count);
     for (int j = 0; j < count; ++j)
     {
+        printf("Steady\n");
         led->set_color(Led::Init);
         vTaskDelay(1000/portTICK_PERIOD_MS);
         led->set_color(Led::Stabilized);
@@ -141,6 +142,15 @@ int led_test(int argc, char** argv)
         led->set_color(Led::Fallen);
         vTaskDelay(1000/portTICK_PERIOD_MS);
         led->set_color(Led::WoundUp);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("Flash\n");
+        led->set_colors(100, 255, 0, 0, 0, 255, 0); // red/green
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        led->set_colors(100, 255, 255, 0, 255, 0, 255); // yellow/magenta
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        led->set_colors(100, 100, 0, 100, 0, 100, 100); // purple/mosque
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        led->set_colors(100, 32, 64, 128, 128, 64, 32); // dark blue/dark orange
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
     led->set_color(0, 0, 0);

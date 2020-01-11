@@ -46,6 +46,7 @@
 #define GPIO_ENC_B2   17
 
 #define PRIO_COMMUNICATION  2
+#define PRIO_LED            0
 #define PRIO_MAIN_LOOP      (TCPIP_THREAD_PRIO + 1)
 
 Led* led = nullptr;
@@ -159,7 +160,6 @@ void battery_task(void*)
                 if (!shutdown)
                 {
                     led->set_color(0, 0, 0);
-                    led->set_color_right(255, 0, 0);
                     shutdown = true;
                     printf("SHUTDOWN: %f\n", smoothed_battery_value);
                 }
@@ -174,8 +174,25 @@ void battery_task(void*)
 
         vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
     }
+}
 
-    vTaskDelete(NULL);
+void steering_watcher(void *arg)
+{
+  for (;;)
+    if (!xTaskNotifyWait(0, 0, NULL, STEERING_TIMEOUT_MS / portTICK_PERIOD_MS))
+    {
+      steering_bias = 0;
+      target_speed = 0;
+    }
+}
+
+void led_task(void*)
+{
+    while (1)
+    {
+        led->update();
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
 }
 
 void main_loop(void* pvParameters)
@@ -292,7 +309,7 @@ void main_loop(void* pvParameters)
                             printf("WOUND UP at %u (%d)\n", current_time, us_since_last_windup);
                         my_state = WOUND_UP;
                         set_motors(0, 0);
-                        led->set_color(Led::WoundUp);
+                        led->set_colors(100, Led::WoundUp, Led::None);
                         //vTaskDelay(100/portTICK_PERIOD_MS);
                     }
                 }
@@ -305,7 +322,7 @@ void main_loop(void* pvParameters)
             {
                 printf("FALLEN!\n");
                 my_state = FALLEN;
-                led->set_color(Led::Fallen);
+                led->set_colors(50, Led::Fallen, Led::None);
                 travel_speed = 0;
                 smoothed_target_speed = 0;
                 set_motors(0, 0);
@@ -427,6 +444,7 @@ void app_main()
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
 #endif
+    xTaskCreate(&led_task, "led_task", 2048, NULL, PRIO_LED, NULL);
 
     printf("Press a key to enter console\n");
     bool debug = false;
@@ -451,12 +469,5 @@ void app_main()
     //xTaskCreate(&count_task, "count_task", 6000, NULL, 2, NULL);
 
     xTaskCreate(&main_loop, "Main loop", 10240, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
-#if 0
-    xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);
-    xTaskCreate(&imu_watcher, "IMU watcher", 128, NULL, PRIO_MAIN_LOOP + 2, &xIMUWatcher);
-    xTaskCreate(&maze_solver_task, "Maze solver", 256, NULL, PRIO_COMMUNICATION + 1, NULL);
-
-    gpio_enable(IMU_INTERRUPT_PIN, GPIO_INPUT);
-    gpio_set_interrupt(IMU_INTERRUPT_PIN, GPIO_INTTYPE_EDGE_POS, imu_interrupt_handler);
-#endif
+    //xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);
 }

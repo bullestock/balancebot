@@ -38,6 +38,7 @@
 // Determine how sensitive the robot is to steering
 #define STEERING_FACTOR 0.13
 #define SPEED_CONTROL_FACTOR 0.67
+#define STEERING_TIMEOUT_MS 1000
 
 // Exponential decay parameters
 #define TRAVEL_SPEED_SMOOTHING 0.002
