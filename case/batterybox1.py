@@ -16,6 +16,8 @@ boxd = 142
 plugw = 38
 plugh = 30
 
+th = 3
+
 SEGMENTS = 48
 
 def plugcutout():
@@ -38,6 +40,21 @@ def lidsupport():
 def handle():
     return rotate_extrude(angle = -180)(translate([13, 0, 0])(circle(r = 4)))
 
+def front_indent():
+    l = 15
+    d = 2
+    h = 5+1
+    i = cube([l, 1, 1])
+    return translate([-l - d, -boxd + th - 0.9, boxh - h])(i) + translate([ d, -boxd + th - 0.9, boxh - h])(i)
+    
+def back_indent():
+    l = 12
+    d = 2
+    h = 5+1
+    th2 = 5
+    i = cube([1, l, 1])
+    return translate([-boxw/2 + th - 0.92, - (l + th + th2), boxh - h])(i) + translate([boxw/2 - th - 0.1, - (l + th + th2), boxh - h])(i)
+    
 def assembly():
     r1 = translate([-boxw/2 + 2.9, -(5+20), 0])(ridge())
     r2 = translate([boxw/2 - 8 - 2.9, -(5+20), 0])(ridge())
@@ -46,7 +63,7 @@ def assembly():
     for i in range(0, 6):
         a = a + translate([-boxw/2 + 1.9, -3 - (i+1)*22.2, 0])(lidsupport())
         a = a + translate([boxw/2 - 4 - 1.9, -3 - (i+1)*22.2, 0])(lidsupport())
-    return a + translate([-1, -boxd+3, 0])(lidsupport())
+    return a + translate([-2, -boxd+3, 0])(lidsupport()) - front_indent() - back_indent()
 
 if __name__ == '__main__':
     a = rotate([0, 0, 90])(assembly())
