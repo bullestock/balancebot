@@ -7,8 +7,12 @@ from solid import *
 from solid.utils import *
 
 lidw = 38.5
-lidh = 137.5
+lidh = 137.5 - 1.5
 lidth = 3
+
+holew = 32
+holeh = 25
+holeoffset = 17
 
 th = 3
 
@@ -20,13 +24,13 @@ def snap():
     th = 2
     h = 6
     return cube([w, th, h]) + translate([0, -1+e, h-1])(cube([w, 1, 1]))
+
 def assembly():
     lid = cube([lidw, lidh, lidth])
     s1 = translate([7, 0, 0])(snap())
     s2 = translate([lidw - 17, 0, 0])(snap())
-    s3 = translate([0, lidh - 10, 0])(rotate([0, 0, 270])(snap()))
-    s4 = translate([lidw, lidh - 10 - 10, 0])(rotate([0, 0, 90])(snap()))
-    return lid + s1 + s2 + s3 + s4
+    h = translate([(lidw - holew)/2, lidh - holeh - holeoffset, -1])(cube([holew, holeh, lidth+2]))
+    return lid + s1 + s2 - h
 
 if __name__ == '__main__':
     a = assembly()
