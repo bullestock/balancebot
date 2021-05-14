@@ -1,3 +1,4 @@
+#include <atomic>
 #include <stdio.h>
 #include <string.h>
 #include <utility>
@@ -15,7 +16,6 @@
 #include "esp_wifi.h"
 #include "sdkconfig.h"
 #include "esp_event.h"
-#include "esp_event_loop.h"
 #include "esp_sleep.h"
 #include "nvs_flash.h"
 
@@ -54,6 +54,7 @@ Motor* motor_a = nullptr;
 Motor* motor_b = nullptr;
 Imu* imu = nullptr;
 Battery* battery = nullptr;
+std::atomic<int32_t> looptime(0);
 
 #if 0
 
@@ -178,12 +179,12 @@ void battery_task(void*)
 
 void steering_watcher(void *arg)
 {
-  for (;;)
-    if (!xTaskNotifyWait(0, 0, NULL, STEERING_TIMEOUT_MS / portTICK_PERIOD_MS))
-    {
-      steering_bias = 0;
-      target_speed = 0;
-    }
+    while (1)
+        if (!xTaskNotifyWait(0, 0, NULL, STEERING_TIMEOUT_MS / portTICK_PERIOD_MS))
+        {
+            steering_bias = 0;
+            target_speed = 0;
+        }
 }
 
 void led_task(void*)
@@ -195,6 +196,8 @@ void led_task(void*)
     }
 }
 
+std::atomic<state> my_state(STABILIZING_ORIENTATION);
+
 void main_loop(void* pvParameters)
 {
     TickType_t time_last = xTaskGetTickCount();
@@ -202,7 +205,6 @@ void main_loop(void* pvParameters)
     int n = 0;
     double smoothed_target_speed = 0;
     double travel_speed = 0;
-    state my_state = STABILIZING_ORIENTATION;
     TickType_t stage_started = time_last;
     TickType_t last_wind_up = time_last;
 
@@ -308,7 +310,6 @@ void main_loop(void* pvParameters)
                         if (my_state != WOUND_UP)
                             printf("WOUND UP at %u (%d)\n", current_time, us_since_last_windup);
                         my_state = WOUND_UP;
-                        set_motors(0, 0);
                         led->set_colors(100, Led::WoundUp, Led::None);
                         //vTaskDelay(100/portTICK_PERIOD_MS);
                     }
@@ -348,8 +349,7 @@ void main_loop(void* pvParameters)
             {
                 n = 0;
                 const auto now = xTaskGetTickCount();
-                auto looptime = elapsed_time_us(now, time_last);
-                printf("Looptime: %u us\n", looptime/1000);
+                looptime = elapsed_time_us(now, time_last);
                 time_last = now;
             }
         }
@@ -376,11 +376,11 @@ esp_err_t event_handler(void* ctx, system_event_t* event)
 
 static void wifi_setup()
 {
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, nullptr));
+    esp_netif_init();
 
-    tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_AP); // Don't run a DHCP client
-    tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+    // Don't run a DHCP client
+    esp_netif_t* my_ap = esp_netif_create_default_wifi_ap();
+    esp_netif_dhcpc_stop(my_ap);
 
     tcpip_adapter_ip_info_t ipInfo;
     inet_pton(AF_INET, "10.0.0.1", &ipInfo.ip);
@@ -388,7 +388,7 @@ static void wifi_setup()
     inet_pton(AF_INET, "255.255.255.0", &ipInfo.netmask);
     tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &ipInfo);
 
-    ESP_ERROR_CHECK(tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP));
+    ESP_ERROR_CHECK(esp_netif_dhcps_start(my_ap));
     
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     const auto ret = esp_wifi_init(&cfg);
