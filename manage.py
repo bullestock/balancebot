@@ -106,7 +106,7 @@ def on_open(ws):
     thread.start_new_thread(run, ())
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Tune ESPWay PID parameters.')
+    parser = argparse.ArgumentParser(description='Manage ESPWay: tune PID parameters, etc.')
     parser.add_argument('--index', type=int, nargs='?', default=0,
                         help='PID index (0 = angle, 1 = velocity')
     parser.add_argument('parameter', nargs='*',
