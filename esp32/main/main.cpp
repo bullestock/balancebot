@@ -143,6 +143,7 @@ void battery_task(void*)
 {
     static bool shutdown = false;
     float smoothed_battery_value = battery->read_voltage();
+    int send_counter = 0;
     while (1)
     {
         smoothed_battery_value = exponential_smooth(smoothed_battery_value, battery->read_voltage(), 0.05);
@@ -166,12 +167,15 @@ void battery_task(void*)
             }
         }
 
-        uint8_t buf[3];
-        buf[0] = BATTERY;
-        uint16_t* payload = (uint16_t*) &buf[1];
-        payload[0] = static_cast<uint16_t>(smoothed_battery_value*1000);
-        ws_server_send_bin_all(buf, sizeof(buf));
-
+        if (++send_counter > 20)
+        {
+            send_counter = 0;
+            uint8_t buf[3];
+            buf[0] = BATTERY;
+            uint16_t* payload = (uint16_t*) &buf[1];
+            payload[0] = static_cast<uint16_t>(smoothed_battery_value*1000);
+            ws_server_send_bin_all(buf, sizeof(buf));
+        }
         vTaskDelay(BATTERY_CHECK_INTERVAL / portTICK_PERIOD_MS);
     }
 }
