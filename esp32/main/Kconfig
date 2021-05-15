@@ -1,0 +1,4 @@
+config WIFI_PASS
+    string "WiFi password"
+    help
+        This sets the password for the ESPWay access point.

@@ -42,7 +42,13 @@ enum ws_msg_t
     RES_LOAD_FLASH_CONFIG_DONE = 19,
 
     REQ_ENABLE_MOTORS = 20,
-    REQ_DISABLE_MOTORS = 21
+    REQ_DISABLE_MOTORS = 21,
+
+    REQ_GET_STATS = 22,
+    RES_GET_STATS = 23,
+
+    REQ_GET_STATUS = 24,
+    RES_GET_STATUS = 25,
 };
 
 struct espway_config

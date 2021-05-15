@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <atomic>
 #include <stdio.h>
 #include <cstring>
 #include <utility>
@@ -34,9 +35,11 @@
 #include "locks.h"
 #include "q16.h"
 
+extern std::atomic<int32_t> looptime;
+extern std::atomic<state> my_state;
+
 static QueueHandle_t client_queue;
 const static int client_queue_size = 10;
-
 
 static void httpd_websocket_save_config()
 {
@@ -80,6 +83,23 @@ static void send_orientation()
     orientation my_orientation = get_orientation();
     qdata[0] = FLT_TO_Q16(my_orientation.sin_pitch / 2);
     qdata[1] = FLT_TO_Q16(my_orientation.sin_roll / 2);
+    ws_server_send_bin_all_from_callback(buf, sizeof(buf));
+}
+
+static void send_stats()
+{
+    uint8_t buf[5];
+    buf[0] = RES_GET_STATS;
+    int32_t* params = (int32_t*) (&buf[1]);
+    params[0] = looptime;
+    ws_server_send_bin_all_from_callback(buf, sizeof(buf));
+}
+
+static void send_status()
+{
+    uint8_t buf[2];
+    buf[0] = RES_GET_STATUS;
+    buf[1] = static_cast<uint8_t>(my_state);
     ws_server_send_bin_all_from_callback(buf, sizeof(buf));
 }
 
@@ -161,6 +181,14 @@ static void httpd_websocket_cb(const uint8_t* data, uint16_t data_len)
         if (data_len != 0)
             break;
         httpd_websocket_clear_config();
+        break;
+
+    case REQ_GET_STATS:
+        send_stats();
+        break;
+
+    case REQ_GET_STATUS:
+        send_status();
         break;
     }
 }

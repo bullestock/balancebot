@@ -30,7 +30,6 @@
 #include "led.h"
 #include "locks.h"
 #include "motor.h"
-#include "secrets.h"
 
 #define LED_GPIO 16
 #define LED_PIN 2 // internal
@@ -368,41 +367,42 @@ void main_loop(void* pvParameters)
     }
 }
 
-esp_err_t event_handler(void* ctx, system_event_t* event)
+void event_handler(void*, esp_event_base_t event_base,
+                   int32_t event_id, void* event_data)
 {
-    printf("WiFi event: %d\n", event->event_id);
-    return ESP_OK;
+    printf("WiFi event: %d\n", event_id);
 }
 
 static void wifi_setup()
 {
     esp_netif_init();
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     // Don't run a DHCP client
     esp_netif_t* my_ap = esp_netif_create_default_wifi_ap();
     esp_netif_dhcpc_stop(my_ap);
 
-    tcpip_adapter_ip_info_t ipInfo;
-    inet_pton(AF_INET, "10.0.0.1", &ipInfo.ip);
-    inet_pton(AF_INET, "10.0.0.1", &ipInfo.gw);
-    inet_pton(AF_INET, "255.255.255.0", &ipInfo.netmask);
-    tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &ipInfo);
-
-    ESP_ERROR_CHECK(esp_netif_dhcps_start(my_ap));
+    esp_netif_ip_info_t ipInfo;
+    IP4_ADDR(&ipInfo.ip, 10, 0, 0, 1);
+	IP4_ADDR(&ipInfo.gw, 10, 0, 0, 1);
+	IP4_ADDR(&ipInfo.netmask, 255, 255, 255, 0);
+	esp_netif_dhcps_stop(my_ap);
+	esp_netif_set_ip_info(my_ap, &ipInfo);
+	ESP_ERROR_CHECK(esp_netif_dhcps_start(my_ap));
     
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    const auto ret = esp_wifi_init(&cfg);
-    if (ret != ESP_OK)
-    {
-        printf("esp_wifi_init: %s\n", esp_err_to_name(ret));
-        return;
-    }
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &event_handler,
+                                                        NULL,
+                                                        NULL));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     wifi_config_t ap_config = {};
     strcpy((char*) ap_config.ap.ssid, WIFI_SSID);
     ap_config.ap.ssid_len = strlen(WIFI_SSID);
-    strcpy((char*) ap_config.ap.password, WIFI_PASS);
+    strcpy((char*) ap_config.ap.password, CONFIG_WIFI_PASS);
     ap_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
     ap_config.ap.max_connection = 1;
     ap_config.ap.beacon_interval = 100;
