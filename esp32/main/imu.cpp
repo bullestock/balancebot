@@ -72,16 +72,16 @@ Imu::Imu()
     assert(lsm6ds3_i2c_read_accel(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
 }
 
-bool Imu::read_raw_data(int16_t* data)
+bool Imu::read_raw_data(int16v3& accel, int16v3& gyro)
 {
     const int N = 6;
     uint8_t tmp[N];
     // 2 ms
     assert(lsm6ds3_i2c_read_accel(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
-    memcpy(data, tmp, N);
+    memcpy(&accel[0], tmp, N);
 
     assert(lsm6ds3_i2c_read_gyro(I2C_MASTER_NUM, IMU_ADDR, tmp) == 0);
-    memcpy(data+3, tmp, N);
+    memcpy(&gyro[0], tmp, N);
 
     return true;
 }

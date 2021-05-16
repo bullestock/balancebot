@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <array>
 #include <stdint.h>
 
 #include "vector3d.h"
@@ -31,10 +32,12 @@ struct mahony_filter_state
     double gyro_conversion_factor;
 };
 
+using int16v3 = std::array<int16_t, 3>;
+
 void mahony_filter_init(mahony_filter_state* state, float Kp, float Ki,
                         float gyro_factor, float dt);
 
 void mahony_filter_update(mahony_filter_state* params,
-                          const int16_t* raw_accel, const int16_t* raw_gyro, vector3d* gravity);
+                          const int16v3& raw_accel, const int16v3& raw_gyro, vector3d& gravity);
 
 

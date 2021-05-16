@@ -91,20 +91,20 @@ int read_imu(int argc, char** argv)
     printf("Running IMU test (%d)\n", count);
     for (int j = 0; j < count; ++j)
     {
-        int16_t raw_data[6];
+        int16v3 raw_data_accel, raw_data_gyro;
         for (int i = 0; i < 100; ++i)
         {
-            if (!imu->read_raw_data(raw_data))
+            if (!imu->read_raw_data(raw_data_accel, raw_data_gyro))
             {
                 printf("Reading IMU failed\n");
                 continue;
             }
-            mahony_filter_update(&imuparams, &raw_data[0], &raw_data[3], &gravity);
+            mahony_filter_update(&imuparams, raw_data_accel, raw_data_gyro, gravity);
             vTaskDelay(1/portTICK_PERIOD_MS);
         }
         printf("%d, %d, %d, %d, %d, %d\n",
-               raw_data[0], raw_data[1], raw_data[2],
-               raw_data[3], raw_data[4], raw_data[5]);
+               raw_data_accel[0], raw_data_accel[1], raw_data_accel[2],
+               raw_data_gyro[0], raw_data_gyro[1], raw_data_gyro[2]);
         // Calculate sine of pitch angle from gravity vector
         auto sin_pitch = -gravity.data[IMU_FORWARD_AXIS];
         if (IMU_INVERT_FORWARD_AXIS)
@@ -188,7 +188,7 @@ void initialize_console()
     uart_config.data_bits = UART_DATA_8_BITS;
     uart_config.parity = UART_PARITY_DISABLE;
     uart_config.stop_bits = UART_STOP_BITS_1;
-    uart_config.use_ref_tick = true;
+    uart_config.source_clk = UART_SCLK_REF_TICK;
     ESP_ERROR_CHECK(uart_param_config((uart_port_t) CONFIG_ESP_CONSOLE_UART_NUM, &uart_config));
 
     /* Install UART driver for interrupt-driven reads and writes */

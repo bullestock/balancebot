@@ -29,61 +29,61 @@ union vector3d
     double data[3];
 } ;
 
-static inline vector3d v3d_add(const vector3d* u, const vector3d* v)
+static inline vector3d v3d_add(const vector3d& u, const vector3d& v)
 {
     vector3d result =
     {
         {
-            u->x + v->x,
-            u->y + v->y,
-            u->z + v->z
+            u.x + v.x,
+            u.y + v.y,
+            u.z + v.z
         }
     };
     return result;
 }
 
-static inline vector3d v3d_sub(const vector3d* u, const vector3d* v)
+static inline vector3d v3d_sub(const vector3d& u, const vector3d& v)
 {
     vector3d result =
     {
         {
-            u->x - v->x,
-            u->y - v->y,
-            u->z - v->z
+            u.x - v.x,
+            u.y - v.y,
+            u.z - v.z
         }
     };
     return result;
 }
 
-static inline vector3d v3d_mul(double a, const vector3d* v)
+static inline vector3d v3d_mul(double a, const vector3d& v)
 {
     vector3d result =
     {
         {
-            a * v->x,
-            a * v->y,
-            a * v->z
+            a * v.x,
+            a * v.y,
+            a * v.z
         }
     };
     return result;
 }
 
-static inline vector3d v3d_cross(const vector3d* u, const vector3d* v)
+static inline vector3d v3d_cross(const vector3d& u, const vector3d& v)
 {
     vector3d result =
     {
         {
-            u->y * v->z - u->z * v->y,
-            u->z * v->x - u->x * v->z,
-            u->x * v->y - u->y * v->x
+            u.y * v.z - u.z * v.y,
+            u.z * v.x - u.x * v.z,
+            u.x * v.y - u.y * v.x
         }
     };
     return result;
 }
 
-static inline vector3d v3d_normalize(const vector3d* u)
+static inline vector3d v3d_normalize(const vector3d& u)
 {
-    double rnorm = u->x * u->x + u->y * u->y + u->z * u->z;
+    double rnorm = u.x * u.x + u.y * u.y + u.z * u.z;
     rnorm = 1.0/sqrt(rnorm);
     return v3d_mul(rnorm, u);
 }

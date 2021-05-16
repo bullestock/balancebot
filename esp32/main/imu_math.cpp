@@ -31,7 +31,7 @@ void mahony_filter_init(mahony_filter_state* state, float Kp, float Ki,
 }
 
 void mahony_filter_update(mahony_filter_state* state,
-                          const int16_t* raw_accel, const int16_t* raw_gyro, vector3d* gravity)
+                          const int16v3& raw_accel, const int16v3& raw_gyro, vector3d& gravity)
 {
     vector3d omega, accel;
     const double SCALE = 65536.0;
@@ -41,24 +41,24 @@ void mahony_filter_update(mahony_filter_state* state,
         omega.data[i] = raw_gyro[i]/SCALE;
     }
 
-    omega = v3d_mul(state->gyro_conversion_factor, &omega);
+    omega = v3d_mul(state->gyro_conversion_factor, omega);
 
     vector3d verror;
     if (accel.x != 0 || accel.y != 0 || accel.z != 0)
     {
-        accel = v3d_normalize(&accel);
-        verror = v3d_cross(&accel, gravity);
-        state->integral = v3d_add(&state->integral, &verror);
-        verror = v3d_mul(state->Kp, &verror);
-        omega = v3d_add(&omega, &verror);
+        accel = v3d_normalize(accel);
+        verror = v3d_cross(accel, gravity);
+        state->integral = v3d_add(state->integral, verror);
+        verror = v3d_mul(state->Kp, verror);
+        omega = v3d_add(omega, verror);
     }
 
-    verror = v3d_mul(state->Ki, &state->integral);
-    verror = v3d_mul(state->dt, &verror);
-    omega = v3d_add(&omega, &verror);
+    verror = v3d_mul(state->Ki, state->integral);
+    verror = v3d_mul(state->dt, verror);
+    omega = v3d_add(omega, verror);
 
-    vector3d vupdate = v3d_cross(gravity, &omega);
-    vupdate = v3d_mul(state->dt, &vupdate);
-    *gravity = v3d_add(gravity, &vupdate);
-    *gravity = v3d_normalize(gravity);
+    vector3d vupdate = v3d_cross(gravity, omega);
+    vupdate = v3d_mul(state->dt, vupdate);
+    gravity = v3d_add(gravity, vupdate);
+    gravity = v3d_normalize(gravity);
 }

@@ -200,16 +200,28 @@ void led_task(void*)
 }
 
 std::atomic<state> my_state(STABILIZING_ORIENTATION);
+TickType_t stage_started = 0;
+double smoothed_target_speed = 0;
+double travel_speed = 0;
+TickType_t last_wind_up = 0;
+
+void init()
+{
+    my_state = STABILIZING_ORIENTATION;
+    const TickType_t current_time = xTaskGetTickCount();
+    stage_started = current_time;
+    smoothed_target_speed = 0;
+    travel_speed = 0;
+    last_wind_up = current_time;
+}
 
 void main_loop(void* pvParameters)
 {
     TickType_t time_last = xTaskGetTickCount();
     TickType_t current_time = 0;
     int n = 0;
-    double smoothed_target_speed = 0;
-    double travel_speed = 0;
-    TickType_t stage_started = time_last;
-    TickType_t last_wind_up = time_last;
+
+    init();
 
     int loopcount = 0;
 #define SHOW_DEBUG() 0 // (my_state == RUNNING)// && (loopcount == 0))
@@ -224,8 +236,8 @@ void main_loop(void* pvParameters)
         xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
         
         // 700 us
-        int16_t raw_data[6];
-        if (!imu->read_raw_data(raw_data))
+        int16v3 raw_data_accel, raw_data_gyro;
+        if (!imu->read_raw_data(raw_data_accel, raw_data_gyro))
         {
             printf("Reading IMU failed\n");
             continue;
@@ -235,7 +247,7 @@ void main_loop(void* pvParameters)
         // < 100 us
         {
             MutexLock lock(orientation_mutex);
-            mahony_filter_update(&imuparams, &raw_data[0], &raw_data[3], &gravity);
+            mahony_filter_update(&imuparams, raw_data_accel, raw_data_gyro, gravity);
             // Calculate sine of pitch angle from gravity vector
             sin_pitch = -gravity.data[IMU_FORWARD_AXIS];
             if (IMU_INVERT_FORWARD_AXIS)
@@ -269,7 +281,15 @@ void main_loop(void* pvParameters)
             last_wind_up = current_time;
             imuparams.Kp = MAHONY_FILTER_KP;
         }
-        else if (my_state == RUNNING || my_state == WOUND_UP)
+        else if (my_state == WOUND_UP)
+        {
+            if (fabs(sin_pitch - STABLE_ANGLE) < RECOVER_LIMIT)
+            {
+                printf("Try again!\n");
+                init();
+            }
+        }
+        else if (my_state == RUNNING)
         {
             if (fabs(sin_pitch - STABLE_ANGLE) < FALL_LIMIT &&
                 fabs(sin_roll) < ROLL_LIMIT)
@@ -359,8 +379,8 @@ void main_loop(void* pvParameters)
         else if (LOGMODE == LOG_RAW)
         {
             printf("%d, %d, %d, %d, %d, %d\n",
-                   raw_data[0], raw_data[1], raw_data[2],
-                   raw_data[3], raw_data[4], raw_data[5]);
+                   raw_data_accel[0], raw_data_accel[1], raw_data_accel[2],
+                   raw_data_gyro[0], raw_data_gyro[1], raw_data_gyro[2]);
         }
         else if (LOGMODE == LOG_PITCH)
         {
