@@ -7,7 +7,6 @@ import threading
 
 from display import Display
 from resetbutton import ResetButton
-from secrets import WIFI_PASS
 from websocket._abnf import ABNF
 
 try:
@@ -15,6 +14,8 @@ try:
 except ImportError:
     import _thread as thread
 import time
+
+WIFI_PASS = os.environ['WIFI_PASS']
 
 # --------- User Settings ---------
 WEIGHT_SAMPLES = 5

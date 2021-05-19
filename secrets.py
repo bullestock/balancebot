@@ -1,1 +1,0 @@
-WIFI_PASS = "verysecret"
