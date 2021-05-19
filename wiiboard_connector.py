@@ -6,6 +6,7 @@ import subprocess
 import threading
 
 from display import Display
+from resetbutton import ResetButton
 from secrets import WIFI_PASS
 from websocket._abnf import ABNF
 
@@ -140,8 +141,6 @@ class Wiiboard:
                         self.calibrationRequested = False
             elif intype == EXTENSION_8BYTES:
                 self.processor.mass(self.createBoardEvent(data[2:12]))
-            else:
-                print "ACK to data write received"
 
     def disconnect(self):
         if self.status == "Connected":
@@ -275,6 +274,9 @@ class Wiiboard:
 # WebSocket stuff
 
 def on_message(ws, message):
+    if ws.closing:
+        print("Closing")
+        return
     ba = bytearray(message)
     #print("WS message: %s" % ba[0])
     if ba[0] == 3:
@@ -294,11 +296,21 @@ def on_close(ws):
 
 def on_open(ws):
     print("WS open")
+    ws.closing = False
     ws.display.show(2, "ESP: WebSocket")
     # Steering: '0' <velocity> <turn rate>
     def run(*args):
         last_steering = time.time()
         while True:
+            if ws.button.is_pressed():
+                print("Restart")
+                ws.closing = True
+                ws.display.clear()
+                # clear() does not work properly
+                ws.display.show(1, "RESTART")
+                ws.display.show(2, "-------")
+                ws.display.show(3, "-------")
+                ws.close()
             s = ws.processor.get_steering()
             if s:
                 # '0', <turn>, <speed>
@@ -336,68 +348,73 @@ if __name__ == "__main__":
 
     display = Display()
     
-    # Show wired IP on line 0
-    ip = subprocess.Popen("ip a show eth0|grep 'inet '|awk '{print $2}'| cut -d/ -f1", shell=True, stdout=subprocess.PIPE).communicate()[0]
-    display.show(0, "IP: %s" % ip)
-    
-    address = '00:24:44:58:F1:D8'
-    
-    try:
-        # Disconnect already-connected devices.
-        # This is basically Linux black magic just to get the thing to work.
-        subprocess.check_output(["bluez-test-input", "disconnect", address], stderr=subprocess.STDOUT)
-        subprocess.check_output(["bluez-test-input", "disconnect", address], stderr=subprocess.STDOUT)
-    except:
-        pass
+    button = ResetButton()
 
-    display.show(1, "Wiiboard: Connecting")
+    while True:
+        # Show wired IP on line 0
+        ip = subprocess.Popen("ip a show eth0|grep 'inet '|awk '{print $2}'| cut -d/ -f1", shell=True, stdout=subprocess.PIPE).communicate()[0]
+        display.show(0, "IP: %s" % ip)
 
-    connected = False
-    while not connected:
+        address = '00:24:44:58:F1:D8'
+
         try:
-            print "Connecting to Wiiboard..."
-            board = Wiiboard(processor)
-            board.connect(address)  # The wii board must be in sync mode at this time
-            connected = True
-        except bluetooth.btcommon.BluetoothError:
-            print "Failed"
-            board.disconnect()
-            time.sleep(1)
-            
-    print "Connected to Wiiboard"
-    display.show(1, "Wiiboard: Connected")
-    board.wait(200)
-    # Flash the LED so we know we can step on.
-    board.setLight(False)
-    board.wait(500)
-    board.setLight(True)
-    wii_thread = threading.Thread(target = board.receive, args=())
-    wii_thread.daemon = True
-    wii_thread.start()
+            # Disconnect already-connected devices.
+            # This is basically Linux black magic just to get the thing to work.
+            subprocess.check_output(["bluez-test-input", "disconnect", address], stderr=subprocess.STDOUT)
+            subprocess.check_output(["bluez-test-input", "disconnect", address], stderr=subprocess.STDOUT)
+        except:
+            pass
 
-    print("Connecting to ESPWay WiFi")
-    display.show(2, "ESP: Connecting")
+        display.show(1, "Wiiboard: Connecting")
 
-    connected = False
-    while not connected:
-        os.system('sudo nmcli dev wifi list')
-        code = os.system('sudo nmcli device wifi connect ESPway password %s' % WIFI_PASS)
-        if code == 0:
-            connected = True
-        elif code == 2560:
-            display.show(2, "ESP: No network")
-        else:
-            display.show(2, "ESP: Error %d" % code)
+        connected = False
+        while not connected:
+            try:
+                print "Connecting to Wiiboard..."
+                board = Wiiboard(processor)
+                board.connect(address)  # The wii board must be in sync mode at this time
+                connected = True
+            except bluetooth.btcommon.BluetoothError:
+                print "Failed"
+                board.disconnect()
+                time.sleep(1)
 
-    display.show(2, "ESP: Connected")
-            
-    #websocket.enableTrace(True)
-    print("Connecting to ESPWay websocket")
-    ws = websocket.WebSocketApp("ws://10.0.0.1/",
-                                on_message = on_message,
-                                on_error = on_error,
-                                on_close = on_close)
-    ws.processor = processor
-    ws.display = display
-    ws.on_open = on_open
-    ws.run_forever()
+        print "Connected to Wiiboard"
+        display.show(1, "Wiiboard: Connected")
+        board.wait(200)
+        # Flash the LED so we know we can step on.
+        board.setLight(False)
+        board.wait(500)
+        board.setLight(True)
+        wii_thread = threading.Thread(target = board.receive, args=())
+        wii_thread.daemon = True
+        wii_thread.start()
+
+        print("Connecting to ESPWay WiFi")
+        display.show(2, "ESP: Connecting")
+
+        connected = False
+        while not connected:
+            os.system('sudo nmcli dev wifi list')
+            code = os.system('sudo nmcli device wifi connect ESPway password %s' % WIFI_PASS)
+            if code == 0:
+                connected = True
+            elif code == 2560:
+                display.show(2, "ESP: No network")
+            else:
+                display.show(2, "ESP: Error %d" % code)
+
+        display.show(2, "ESP: Connected")
+
+        #websocket.enableTrace(True)
+        print("Connecting to ESPWay websocket")
+        ws = websocket.WebSocketApp("ws://10.0.0.1/",
+                                    on_message = on_message,
+                                    on_error = on_error,
+                                    on_close = on_close)
+        ws.closing = True
+        ws.processor = processor
+        ws.display = display
+        ws.button = button
+        ws.on_open = on_open
+        ws.run_forever()
