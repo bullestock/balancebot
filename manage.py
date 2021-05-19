@@ -5,7 +5,6 @@ import sys
 import threading
 import websocket
 
-from _secrets import WIFI_PASS
 from websocket._abnf import ABNF
 
 try:
@@ -13,6 +12,8 @@ try:
 except ImportError:
     import _thread as thread
 import time
+
+WIFI_PASS = os.environ['WIFI_PASS']
 
 # WebSocket stuff
 
