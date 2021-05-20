@@ -48,30 +48,26 @@ int i2c_writeBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uin
     int retCode = 0;
     i2c_cmd_handle_t cmd;
 
-    if (bufr == 0) {
+    if (bufr == 0)
 		return -1;
-	}
 
     // Setup the target device for a write to a register address by queuing up addr and the bytes
     cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, chipI2cAddr << 1 | WRITE_BIT, ACK_CHECK_EN);
 
-    if (regAddr != 0xff) { 		// Do address for internal register to be used
+    if (regAddr != 0xff) 		// Do address for internal register to be used
     	i2c_master_write_byte(cmd, regAddr, ACK_CHECK_EN);
-    }
 
     // Now write as many bytes as was requested
-    for (int i = 0; i < numBytes; i++) {
+    for (int i = 0; i < numBytes; i++)
     	i2c_master_write_byte(cmd, bufr[i], ACK_CHECK_EN);
-    }
     i2c_master_stop(cmd);
 
     int ret = i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
-    if (ret == ESP_FAIL) {
+    if (ret == ESP_FAIL)
         return ret;
-    }
 
     return retCode;
 }
@@ -112,13 +108,7 @@ int i2c_writeWord(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, int1
  */
 int i2c_writeByte(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t data)
 {
-    int retCode = 0;
-    int i;
-    i2c_cmd_handle_t cmd;
-
-    retCode = i2c_writeBytes(i2c_num, chipI2cAddr, regAddr, &data, 1);
-
-    return retCode;
+    return i2c_writeBytes(i2c_num, chipI2cAddr, regAddr, &data, 1);
 }
 
 /**
@@ -142,16 +132,17 @@ int i2c_writeBits(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
 	uint8_t bufr[4];
 
 	retCode = i2c_readBytes(i2c_num, chipI2cAddr, regAddr, &bufr[0], 1);
-	if (retCode == 0) {
+	if (retCode == 0)
+    {
 		uint8_t mask = ((1 << bitsLen) - 1) << (bitsStart - bitsLen + 1);
 		data <<= (bitsStart - bitsLen + 1); // shift data into correct position
 		data &= mask; // zero all non-important bits in data
 		bufr[0] &= ~(mask); // zero all important bits in existing byte
 		bufr[0] |= data; // combine data with existing byte
 		return i2c_writeBytes(i2c_num, chipI2cAddr, regAddr, &bufr[0], 1);
-	} else {
-		return retCode;
 	}
+    else
+		return retCode;
 }
 
 /** write a single bit in an 8-bit device register.
@@ -188,28 +179,23 @@ int i2c_writeBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8
 int i2c_readBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t *bufr, uint16_t numBytes)
 {
     int retCode = ESP_OK;
-    i2c_cmd_handle_t cmd;
 
-    if (numBytes == 0) {
+    if (numBytes == 0)
     	return retCode;    // Hay, if the guy asks for 0 bytes, we technically have no error!  DOOH!
-    }
 
-    if (bufr == 0) {
+    if (bufr == 0)
 		return -9;
-	}
 
     // Setup the target device for an access to a register address by queuing up addr and the bytes
-	cmd = i2c_cmd_link_create();
+	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 	i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, chipI2cAddr << 1 | WRITE_BIT, ACK_CHECK_EN);
 	i2c_master_write_byte(cmd, regAddr, ACK_CHECK_EN);
 	i2c_master_stop(cmd);
 	i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_RATE_MS);  // Do the address reg selection
 	i2c_cmd_link_delete(cmd);
-	if (retCode == ESP_FAIL) {
+	if (retCode == ESP_FAIL)
 		return retCode;
-	}
-	//!!vTaskDelay(2 / portTICK_RATE_MS);
 
 	// Now setup for the read address mode
 	cmd = i2c_cmd_link_create();
@@ -218,20 +204,18 @@ int i2c_readBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
 
 	// Now read as many bytes as was requested
 	i2c_ack_type_t  ackVal = (i2c_ack_type_t) ACK_VAL;
-	int  i;
-	for (i=0 ; i < numBytes; i++) {
-		if (i == (numBytes - 1)) {
+	for (int i = 0 ; i < numBytes; i++)
+    {
+		if (i == (numBytes - 1))
 			ackVal = (i2c_ack_type_t) NACK_VAL;
-		}
 		i2c_master_read_byte(cmd, &bufr[i], ackVal);
 	}
 	i2c_master_stop(cmd);
 
 	retCode = i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_RATE_MS);
 	i2c_cmd_link_delete(cmd);
-	if (retCode == ESP_FAIL) {
+	if (retCode == ESP_FAIL)
 		return ESP_FAIL;
-	}
 	return ESP_OK;
 }
 
@@ -249,16 +233,10 @@ int i2c_readBytes(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint
  */
 int i2c_readByte(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t *bufr)
 {
-    int retCode = ESP_OK;
-    i2c_cmd_handle_t cmd;
-
-    if (bufr == 0) {
+    if (bufr == 0)
 		return -9;
-	}
 
-    retCode = i2c_readBytes(i2c_num, chipI2cAddr, regAddr, bufr, 1);
-
-	return retCode;
+    return i2c_readBytes(i2c_num, chipI2cAddr, regAddr, bufr, 1);
 }
 
 
@@ -272,17 +250,18 @@ int i2c_readByte(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8
  *
  * @retval				Zero indicates no error.
  */
-int i2c_readBits(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitStart, uint8_t bitsLen, uint8_t *data) {
+int i2c_readBits(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitStart, uint8_t bitsLen, uint8_t *data)
+{
     // 01101001 read byte
     // 76543210 bit numbers
     //    xxx   args: bitStart=4, length=3
     //    010   masked
     //   -> 010 shifted
-	int retCode = 0;
     uint8_t bufr[4];
 
-    retCode = i2c_readBytes(i2c_num, chipI2cAddr, regAddr, &bufr[0], 1);
-    if (retCode == 0) {
+    int retCode = i2c_readBytes(i2c_num, chipI2cAddr, regAddr, &bufr[0], 1);
+    if (retCode == 0)
+    {
         uint8_t mask = ((1 << bitsLen) - 1) << (bitStart - bitsLen + 1);
         bufr[0] &= mask;
         bufr[0] >>= (bitStart - bitsLen + 1);
@@ -300,9 +279,10 @@ int i2c_readBits(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8
  *
  * @retval				Zero indicates no error.
  */
-int i2c_readBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitNum, uint8_t *data) {
+int i2c_readBit(i2c_port_t i2c_num, uint8_t chipI2cAddr, uint8_t regAddr, uint8_t bitNum, uint8_t *data)
+{
     uint8_t b;
-    uint8_t count = i2c_readByte(i2c_num, chipI2cAddr, regAddr, &b);
+    i2c_readByte(i2c_num, chipI2cAddr, regAddr, &b);
     *data = b & (1 << bitNum);
     return 0;
 }
@@ -329,22 +309,22 @@ int i2c_waitOnRegStatus(i2c_port_t i2c_num, uint8_t chipI2cAddr,
 	uint8_t regVal;
 
 	startTics = xTaskGetTickCount();
-	while (1) {
+	while (1)
+    {
 		i2c_readBytes(i2c_num, chipI2cAddr, regAddr, &regVal, 1);
-		if (waitCondition == WAIT_FOR_NONZERO) {
-			if ((regVal & bitMask) != 0) {
+		if (waitCondition == WAIT_FOR_NONZERO)
+        {
+			if ((regVal & bitMask) != 0)
 				break;	// Go the bit(s) to be ready
-			}
-		} else if ((regVal & bitMask) == 0) {
-			break;	// Go the bit(s) to be ready
 		}
+        else if ((regVal & bitMask) == 0)
+			break;	// Go the bit(s) to be ready
 
 		vTaskDelay(1);		// Introduce 1 tic delay so we don't hog cpu
 
 		nowTics = xTaskGetTickCount();
-		if ((nowTics - startTics) > timeoutTics) {
+		if ((nowTics - startTics) > timeoutTics)
 			return -1;
-		}
 	}
 	return retCode;
 }
@@ -366,13 +346,13 @@ int i2c_writeCmdTable(int i2c_num, uint8_t i2c_addr, i2c_cmd_table_t *cmdTable)
 	int retCode = 0;
 	uint8_t buf[8];
 
-	while (cmdTable[cmd].databytes!=0xff) {
+	while (cmdTable[cmd].databytes!=0xff)
+    {
 		buf[0] = cmdTable[cmd].data[0];
 		// GET_PRT; printf("write cmd 0x%x to I2C addr 0x%x with data 0x%x\n", cmdTable[cmd].cmd, i2c_addr, buf[0]); EXIT_PRT;
 		retCode = i2c_writeBytes((i2c_port_t) i2c_num, i2c_addr, cmdTable[cmd].cmd, &buf[0], 1);
-		if (retCode != 0) {
+		if (retCode != 0)
 			return -1;
-		}
 		cmd++;
 	}
 
