@@ -55,8 +55,6 @@ Imu* imu = nullptr;
 Battery* battery = nullptr;
 std::atomic<int32_t> looptime(0);
 
-#if 0
-
 void event_task(void* p)
 {
     auto encoders = reinterpret_cast<std::pair<Encoder*, Encoder*>*>(p);
@@ -64,12 +62,11 @@ void event_task(void* p)
     auto enc_b = encoders->second;
     while (1)
     {
-        enc_a->poll();
-        enc_b->poll();
+        printf("A %d\n", (int) enc_a->poll());
+        printf("B %d\n", (int) enc_b->poll());
+        xTaskNotifyWait(0, 0, NULL, 100/portTICK_PERIOD_MS);
     }
 }
-
-#endif
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
@@ -462,12 +459,12 @@ void app_main()
     motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_AENBL_OUT, GPIO_APHASE_OUT);
     motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_BENBL_OUT, GPIO_BPHASE_OUT);
     battery = new Battery;
-#if 0
+
     auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
     auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
     static auto encoders = std::make_pair(enc_a, enc_b);
     xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
-#endif
+
     xTaskCreate(&led_task, "led_task", 2048, NULL, PRIO_LED, NULL);
 
     printf("Press a key to enter console\n");
