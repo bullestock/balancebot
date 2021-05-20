@@ -175,16 +175,16 @@ void initialize_console()
     setvbuf(stdin, NULL, _IONBF, 0);
 
     /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
-    esp_vfs_dev_uart_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
+    esp_vfs_dev_uart_port_set_rx_line_endings(UART_NUM_1, ESP_LINE_ENDINGS_CR);
     /* Move the caret to the beginning of the next line on '\n' */
-    esp_vfs_dev_uart_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
+    esp_vfs_dev_uart_port_set_tx_line_endings(UART_NUM_1, ESP_LINE_ENDINGS_CRLF);
 
     /* Configure UART. Note that REF_TICK is used so that the baud rate remains
      * correct while APB frequency is changing in light sleep mode.
      */
     uart_config_t uart_config;
     memset(&uart_config, 0, sizeof(uart_config));
-    uart_config.baud_rate = CONFIG_CONSOLE_UART_BAUDRATE;
+    uart_config.baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE;
     uart_config.data_bits = UART_DATA_8_BITS;
     uart_config.parity = UART_PARITY_DISABLE;
     uart_config.stop_bits = UART_STOP_BITS_1;
