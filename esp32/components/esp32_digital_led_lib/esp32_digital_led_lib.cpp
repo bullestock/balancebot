@@ -42,7 +42,7 @@ extern "C" {
   #include "freertos/semphr.h"
   #include "soc/rmt_struct.h"
 #elif defined(ESP_PLATFORM)
-  #include <esp_intr.h>
+  #include <esp_intr_alloc.h>
   #include <driver/gpio.h>
   #include <driver/rmt.h>
   #include <freertos/FreeRTOS.h>
