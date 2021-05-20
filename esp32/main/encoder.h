@@ -10,13 +10,13 @@ public:
     Encoder(pcnt_unit_t unit,
             int gpio1, int gpio2);
 
-    void poll();
+    int64_t poll();
     
 private:
     struct pcnt_evt_t
     {
-        int unit;  // the PCNT unit that originated an interrupt
-        uint32_t status; // information on the event type that caused the interrupt
+        Encoder* enc = 0;
+        uint32_t status = 0;
     };
 
     static void IRAM_ATTR quad_enc_isr(void*);
@@ -26,7 +26,7 @@ private:
     // A queue to handle pulse counter events
     static xQueueHandle pcnt_evt_queue;
 
-    int16_t count = 0;
+    int64_t accumulated = 0;
 };
 
 

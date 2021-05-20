@@ -12,90 +12,87 @@ xQueueHandle Encoder::pcnt_evt_queue = nullptr;
 Encoder::Encoder(pcnt_unit_t _unit, int gpio1, int gpio2)
     : unit(_unit)
 {
-    // Initialize PCNT event queue and PCNT functions
-    if (!pcnt_evt_queue)
-        pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
-
     pcnt_config_t pcnt_config;
     pcnt_config.pulse_gpio_num = gpio1;
     pcnt_config.ctrl_gpio_num = gpio2;
     pcnt_config.channel = PCNT_CHANNEL_0;
     pcnt_config.unit = unit;
-    pcnt_config.pos_mode = PCNT_COUNT_INC;            // Count up on the positive edge
-    pcnt_config.neg_mode = PCNT_COUNT_DEC;
-    pcnt_config.lctrl_mode = PCNT_MODE_KEEP;          // Reverse counting direction if low
-    pcnt_config.hctrl_mode = PCNT_MODE_REVERSE;       // Keep the primary counter mode if high
+    pcnt_config.pos_mode = PCNT_COUNT_DEC;
+    pcnt_config.neg_mode = PCNT_COUNT_INC;
+    pcnt_config.lctrl_mode = PCNT_MODE_REVERSE;
+    pcnt_config.hctrl_mode = PCNT_MODE_KEEP;
     pcnt_config.counter_h_lim = PCNT_H_LIM_VAL;
     pcnt_config.counter_l_lim = PCNT_L_LIM_VAL;
 
-    pcnt_unit_config(&pcnt_config);
-    pcnt_set_filter_value(unit, 100);
-    pcnt_filter_enable(unit);
+    ESP_ERROR_CHECK(pcnt_unit_config(&pcnt_config));
 
-    pcnt_event_enable(unit, PCNT_EVT_ZERO);
-    pcnt_event_enable(unit, PCNT_EVT_H_LIM);
-    pcnt_event_enable(unit, PCNT_EVT_L_LIM);
+    pcnt_config.pulse_gpio_num = gpio2;
+    pcnt_config.ctrl_gpio_num = gpio1;
+    pcnt_config.channel = PCNT_CHANNEL_1;
+    pcnt_config.pos_mode = PCNT_COUNT_INC;
+    pcnt_config.neg_mode = PCNT_COUNT_DEC;
 
-    /* Initialize PCNT's counter */
+    ESP_ERROR_CHECK(pcnt_unit_config(&pcnt_config));
+    
     pcnt_counter_pause(unit);
     pcnt_counter_clear(unit);
 
-    /* Register ISR handler and enable interrupts for PCNT unit */
-    pcnt_isr_register(quad_enc_isr, NULL, 0, NULL);
-    pcnt_intr_enable(unit);
+    // Initialize PCNT event queue and PCNT functions
+    if (!pcnt_evt_queue)
+    {
+        pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
+        ESP_ERROR_CHECK(pcnt_isr_service_install(0));
+    }
+    pcnt_isr_handler_add(unit, quad_enc_isr, this);
 
-    /* Everything is set up, now go to counting */
+    pcnt_set_filter_value(unit, 100);
+    pcnt_filter_enable(unit);
+
+    pcnt_event_enable(unit, PCNT_EVT_H_LIM);
+    pcnt_event_enable(unit, PCNT_EVT_L_LIM);
+
     pcnt_counter_resume(unit);
 }
 
-void Encoder::poll()
+int64_t Encoder::poll()
 {
     /* Wait for the event information passed from PCNT's interrupt handler.
      * Once received, decode the event type and print it on the serial monitor.
      */
     pcnt_evt_t evt;
-    auto res = xQueueReceive(pcnt_evt_queue, &evt, 1000 / portTICK_PERIOD_MS);
-    //printf("PCNT unit %d\n", unit);
-    if (res == pdTRUE) {
-        pcnt_get_counter_value(unit, &count);
-        printf("Event PCNT unit[%d]; cnt: %d\n", evt.unit, count);
-        if (evt.status & PCNT_STATUS_THRES1_M) {
-            printf("THRES1 EVT\n");
-        }
-        if (evt.status & PCNT_STATUS_THRES0_M) {
-            printf("THRES0 EVT\n");
-        }
+    auto res = xQueueReceive(pcnt_evt_queue, &evt, 0);
+    if (res == pdTRUE)
+    {
+        auto enc = (Encoder*) evt.enc;
+        //printf("Status %d\n", evt.status);
         if (evt.status & PCNT_STATUS_L_LIM_M) {
-            printf("L_LIM EVT\n");
+            enc->accumulated += PCNT_L_LIM_VAL;
         }
         if (evt.status & PCNT_STATUS_H_LIM_M) {
-            printf("H_LIM EVT\n");
+            enc->accumulated += PCNT_H_LIM_VAL;
         }
-        if (evt.status & PCNT_STATUS_ZERO_M) {
-            printf("ZERO EVT\n");
-        }
-    } else {
-        pcnt_get_counter_value(unit, &count);
-        //printf("Current counter value: %d\n", count);
     }
+
+    int16_t temp_count;
+    pcnt_get_counter_value(unit, &temp_count);
+    return temp_count + accumulated;
 }
 
-void IRAM_ATTR Encoder::quad_enc_isr(void *arg)
+void IRAM_ATTR Encoder::quad_enc_isr(void* arg)
 {
-    uint32_t intr_status = PCNT.int_st.val;
-    int i;
-    pcnt_evt_t evt;
-    portBASE_TYPE HPTaskAwoken = pdFALSE;
+    auto enc = (Encoder*) arg;
 
-    for (i = 0; i < PCNT_UNIT_MAX; i++)
-        if (intr_status & (BIT(i))) {
-            evt.unit = i;
-            /* Save the PCNT event type that caused an interrupt
-               to pass it to the main program */
-            evt.status = PCNT.status_unit[i].val;
-            PCNT.int_clr.val = BIT(i);
-            xQueueSendFromISR(pcnt_evt_queue, &evt, &HPTaskAwoken);
-            if (HPTaskAwoken == pdTRUE)
-                portYIELD_FROM_ISR();
-        }
+    uint32_t status = 0;
+    pcnt_get_event_status(enc->unit, &status);
+    if ((status & PCNT_STATUS_L_LIM_M) ||
+        (status & PCNT_STATUS_H_LIM_M))
+    {
+        pcnt_evt_t evt;
+        evt.enc = enc;
+        evt.status = status;
+        portBASE_TYPE HPTaskAwoken = pdFALSE;
+        xQueueSendFromISR(pcnt_evt_queue, &evt, &HPTaskAwoken);
+        if (HPTaskAwoken == pdTRUE)
+            portYIELD_FROM_ISR();
+    }
 }
