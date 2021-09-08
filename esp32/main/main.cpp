@@ -51,22 +51,11 @@
 Led* led = nullptr;
 Motor* motor_a = nullptr;
 Motor* motor_b = nullptr;
+Encoder* enc_a = nullptr;
+Encoder* enc_b = nullptr;
 Imu* imu = nullptr;
 Battery* battery = nullptr;
 std::atomic<int32_t> looptime(0);
-
-void event_task(void* p)
-{
-    auto encoders = reinterpret_cast<std::pair<Encoder*, Encoder*>*>(p);
-    auto enc_a = encoders->first;
-    auto enc_b = encoders->second;
-    while (1)
-    {
-        printf("A %d\n", (int) enc_a->poll());
-        printf("B %d\n", (int) enc_b->poll());
-        xTaskNotifyWait(0, 0, NULL, 100/portTICK_PERIOD_MS);
-    }
-}
 
 xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
@@ -201,6 +190,10 @@ TickType_t stage_started = 0;
 double smoothed_target_speed = 0;
 double travel_speed = 0;
 TickType_t last_wind_up = 0;
+int64_t a_distance = 0;
+int64_t b_distance = 0;
+int a_speed = 0;
+int b_speed = 0;
 
 void init()
 {
@@ -224,14 +217,29 @@ void main_loop(void* pvParameters)
 #define SHOW_DEBUG() 0 // (my_state == RUNNING)// && (loopcount == 0))
 
     led->set_color(Led::Init);
+
+    int64_t last_enc_a_pos = 0;
+    int64_t last_enc_b_pos = 0;
+    
     while (1)
     {
+        xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
+
         ++loopcount;
         if (loopcount >= 100)
+        {
             loopcount = 0;
-        
-        xTaskNotifyWait(0, 0, NULL, 1); // allow other tasks to run
-        
+
+            const int64_t enc_a_pos = enc_a->poll();
+            const int64_t enc_b_pos = enc_b->poll();
+            a_speed = static_cast<int>(last_enc_a_pos - enc_a_pos);
+            b_speed = static_cast<int>(last_enc_b_pos - enc_b_pos);
+            last_enc_a_pos = enc_a_pos;
+            last_enc_b_pos = enc_b_pos;
+            a_distance += a_speed;
+            b_distance += b_speed;
+        }
+
         // 700 us
         int16v3 raw_data_accel, raw_data_gyro;
         if (!imu->read_raw_data(raw_data_accel, raw_data_gyro))
@@ -459,12 +467,9 @@ void app_main()
     motor_a = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM0A, MCPWM0B, GPIO_AENBL_OUT, GPIO_APHASE_OUT);
     motor_b = new Motor(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM1A, MCPWM1B, GPIO_BENBL_OUT, GPIO_BPHASE_OUT);
     battery = new Battery;
-
-    auto enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
-    auto enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
-    static auto encoders = std::make_pair(enc_a, enc_b);
-    xTaskCreate(event_task, "event_task", 2048, &encoders, 5, NULL);
-
+    enc_a = new Encoder(PCNT_UNIT_0, GPIO_ENC_A1, GPIO_ENC_A2);
+    enc_b = new Encoder(PCNT_UNIT_1, GPIO_ENC_B1, GPIO_ENC_B2);
+    
     xTaskCreate(&led_task, "led_task", 2048, NULL, PRIO_LED, NULL);
 
     printf("Press a key to enter console\n");
@@ -487,7 +492,6 @@ void app_main()
     xTaskCreate(&battery_task, "Battery task", 2048, NULL, PRIO_COMMUNICATION, NULL);
     xTaskCreate(&server_task, "HTTP Daemon", 3000, NULL, PRIO_COMMUNICATION, NULL);
     xTaskCreate(&server_handle_task, "server_handle_task", 4000, NULL, PRIO_COMMUNICATION, NULL);
-    //xTaskCreate(&count_task, "count_task", 6000, NULL, 2, NULL);
 
     xTaskCreate(&main_loop, "Main loop", 10240, NULL, PRIO_MAIN_LOOP, &xCalculationTask);
     //xTaskCreate(&steering_watcher, "Steering watcher", 128, NULL, PRIO_MAIN_LOOP + 1, &xSteeringWatcher);

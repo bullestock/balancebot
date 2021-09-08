@@ -37,6 +37,10 @@
 
 extern std::atomic<int32_t> looptime;
 extern std::atomic<state> my_state;
+extern int64_t a_distance;
+extern int64_t b_distance;
+extern int a_speed;
+extern int b_speed;
 
 static QueueHandle_t client_queue;
 const static int client_queue_size = 10;
@@ -88,10 +92,15 @@ static void send_orientation()
 
 static void send_stats()
 {
-    uint8_t buf[5];
+    uint8_t buf[1 + 3*4 + 2*8];
     buf[0] = RES_GET_STATS;
-    int32_t* params = (int32_t*) (&buf[1]);
+    auto params = (int32_t*) (&buf[1]);
     params[0] = looptime;
+    params[1] = a_speed;
+    params[2] = b_speed;
+    auto params64 = (int64_t*) (&params[3]);
+    params64[0] = a_distance;
+    params64[1] = b_distance;
     ws_server_send_bin_all_from_callback(buf, sizeof(buf));
 }
 

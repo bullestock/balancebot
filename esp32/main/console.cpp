@@ -1,5 +1,6 @@
 #include "console.h"
 
+#include "encoder.h"
 #include "espway.h"
 #include "battery.h"
 #include "motor.h"
@@ -169,6 +170,20 @@ int read_battery(int argc, char** argv)
     return 0;
 }
 
+int read_encoders(int argc, char** argv)
+{
+    extern Encoder* enc_a;
+    extern Encoder* enc_b;
+
+    for (int i = 0; i < 100; ++i)
+    {
+        printf("Encoders: %lld %lld\n", enc_a->poll(), enc_b->poll());
+        vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+
+    return 0;
+}
+
 void initialize_console()
 {
     /* Disable buffering on stdin */
@@ -264,6 +279,15 @@ void run_console()
         .argtable = nullptr
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd4));
+    
+    const esp_console_cmd_t cmd5 = {
+        .command = "readencoders",
+        .help = "Read encoders",
+        .hint = NULL,
+        .func = &read_encoders,
+        .argtable = nullptr
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd5));
     
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
