@@ -2,6 +2,7 @@ import argparse
 import os
 import subprocess
 import sys
+import struct
 import threading
 import websocket
 
@@ -49,7 +50,10 @@ def set_q16(ba, val):
     ba.append((sv // (256*256*256)) & 255)
 
 def get_uint32(ba, start):
-    return ba[start] + 256*ba[start+1] + 256*256*ba[start+2] + 256*256*256*ba[start+3]
+    return struct.unpack_from('<I', ba, 1)[0]
+
+def get_int64(ba, start):
+    return struct.unpack_from('<q', ba, 1)[0]
 
 def get_state(ba, start):
     state = ba[start]
@@ -108,6 +112,12 @@ def on_message(ws, message):
         ws.state = 'WAIT_GET_VERIFY'
     elif opcode == RES_GET_STATS:
         print("Looptime %u" % get_uint32(ba, 1))
+        speed_a = get_uint32(ba, 1+4)
+        speed_b = get_uint32(ba, 1+2*4)
+        print("Speed %u %u" % (speed_a, speed_b))
+        dist_a = get_int64(ba, 1+3*4)
+        dist_b = get_int64(ba, 1+3*4+8)
+        print("Distance %d %d" % (dist_a, dist_b))
         bytes = [REQ_GET_STATUS]
         ws.sock.send_binary(bytearray(bytes))
         ws.state == 'WAIT_GET_STATUS'
